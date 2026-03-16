@@ -29,7 +29,7 @@ function styleFeature(feature: Feature | undefined, selectedCd: string | null): 
     fillColor: '#1D4ED8',
     fillOpacity: 0,
     color: '#1a1a1a',
-    weight: 0.7,
+    weight: 1.1,
   }
 }
 
@@ -58,7 +58,7 @@ function FitBounds({ features }: { features: SectorFeature[] }) {
         }
       }
       if (latlngs.length > 0) {
-        map.fitBounds(latlngs, { padding: [20, 20] })
+        map.fitBounds(latlngs, { padding: [8, 8] })
       }
     } catch {
       // ignore fitBounds errors

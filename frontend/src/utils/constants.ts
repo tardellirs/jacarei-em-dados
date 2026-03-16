@@ -20,3 +20,29 @@ export const GEOJSON_URL = '/jacarei_setores_merged.geojson'
 
 export const MAP_CENTER: [number, number] = [-23.305, -45.965]
 export const MAP_ZOOM = 12
+
+// Mapeamento de código de estado IBGE → sigla UF
+const UF_MAP: Record<string, string> = {
+  '11': 'RO', '12': 'AC', '13': 'AM', '14': 'RR', '15': 'PA',
+  '16': 'AP', '17': 'TO', '21': 'MA', '22': 'PI', '23': 'CE',
+  '24': 'RN', '25': 'PB', '26': 'PE', '27': 'AL', '28': 'SE',
+  '29': 'BA', '31': 'MG', '32': 'ES', '33': 'RJ', '35': 'SP',
+  '41': 'PR', '42': 'SC', '43': 'RS', '50': 'MS', '51': 'MT',
+  '52': 'GO', '53': 'DF',
+}
+
+/**
+ * Gera a URL do mapa do setor censitário no FTP do IBGE.
+ * Padrão: .../SP/3524402/35244020500/MSR/352440205000713/A3_352440205000713_MSR.pdf
+ */
+export function ibgeSectorPdfUrl(cdSetor: string): string {
+  const uf = UF_MAP[cdSetor.slice(0, 2)] ?? cdSetor.slice(0, 2)
+  const mun = cdSetor.slice(0, 7)
+  const subdist = cdSetor.slice(0, 11)
+  return [
+    'https://geoftp.ibge.gov.br/cartas_e_mapas/mapas_para_fins_de_levantamentos_estatisticos',
+    'censo_demografico_2022/mapas_e_descritivos_de_setores_censitarios',
+    uf, mun, subdist, 'MSR', cdSetor,
+    `A3_${cdSetor}_MSR.pdf`,
+  ].join('/')
+}
