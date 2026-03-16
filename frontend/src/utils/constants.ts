@@ -33,16 +33,18 @@ const UF_MAP: Record<string, string> = {
 
 /**
  * Gera a URL do mapa do setor censitário no FTP do IBGE.
- * Padrão: .../SP/3524402/35244020500/MSR/352440205000713/A3_352440205000713_MSR.pdf
+ * MSU = setor Urbano, MSR = setor Rural
+ * Padrão: .../SP/3524402/35244020500/MSU/352440205000010/A3_352440205000010_MSU.pdf
  */
-export function ibgeSectorPdfUrl(cdSetor: string): string {
+export function ibgeSectorPdfUrl(cdSetor: string, situacao: string | null): string {
   const uf = UF_MAP[cdSetor.slice(0, 2)] ?? cdSetor.slice(0, 2)
   const mun = cdSetor.slice(0, 7)
   const subdist = cdSetor.slice(0, 11)
+  const tipo = situacao === 'Urbana' ? 'MSU' : 'MSR'
   return [
     'https://geoftp.ibge.gov.br/cartas_e_mapas/mapas_para_fins_de_levantamentos_estatisticos',
     'censo_demografico_2022/mapas_e_descritivos_de_setores_censitarios',
-    uf, mun, subdist, 'MSR', cdSetor,
-    `A3_${cdSetor}_MSR.pdf`,
+    uf, mun, subdist, tipo, cdSetor,
+    `A3_${cdSetor}_${tipo}.pdf`,
   ].join('/')
 }

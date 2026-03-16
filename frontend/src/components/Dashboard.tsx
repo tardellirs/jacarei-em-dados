@@ -24,7 +24,7 @@ export function Dashboard({ data, selectedSector, visibleCount, totalCount }: Da
     : `${totalCount.toLocaleString('pt-BR')} setores censitários`
 
   const pdfUrl = selectedSector
-    ? ibgeSectorPdfUrl(selectedSector.properties.CD_SETOR)
+    ? ibgeSectorPdfUrl(selectedSector.properties.CD_SETOR, selectedSector.properties.SITUACAO)
     : null
 
   return (
