@@ -118,18 +118,20 @@ export function MapView({
 
     layer.bindTooltip(
       `<div class="text-xs font-semibold">${pop} hab.</div>`,
-      { sticky: false, className: 'leaflet-tooltip-custom' }
+      { sticky: false, autoClose: true, className: 'leaflet-tooltip-custom' }
     )
 
     layer.on({
       mouseover(e) {
         const l = e.target
+        l.openTooltip()
         if (props.CD_SETOR !== selectedCd) {
           l.setStyle({ fillColor: '#3B82F6', fillOpacity: 0.40, weight: 1.2, color: '#1a1a1a' })
         }
       },
       mouseout(e) {
         const l = e.target
+        l.closeTooltip()
         if (props.CD_SETOR !== selectedCd) {
           l.setStyle(styleFeature(feature, selectedCd))
         }
