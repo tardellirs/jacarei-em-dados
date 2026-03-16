@@ -113,25 +113,16 @@ export function MapView({
 
   function onEachFeature(feature: Feature, layer: Layer) {
     const props = (feature as SectorFeature).properties
-    const hasData = props.V01006 != null
-    const pop = hasData ? Number(props.V01006).toLocaleString('pt-BR') : '—'
-
-    layer.bindTooltip(
-      `<div class="text-xs font-semibold">${pop} hab.</div>`,
-      { sticky: false, autoClose: true, className: 'leaflet-tooltip-custom' }
-    )
 
     layer.on({
       mouseover(e) {
         const l = e.target
-        l.openTooltip()
         if (props.CD_SETOR !== selectedCd) {
           l.setStyle({ fillColor: '#3B82F6', fillOpacity: 0.40, weight: 1.2, color: '#1a1a1a' })
         }
       },
       mouseout(e) {
         const l = e.target
-        l.closeTooltip()
         if (props.CD_SETOR !== selectedCd) {
           l.setStyle(styleFeature(feature, selectedCd))
         }
