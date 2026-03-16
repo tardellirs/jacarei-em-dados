@@ -1,0 +1,21 @@
+[project]
+name = "jacarei-em-dados"
+version = "0.1.0"
+description = "Painel interativo de dados do Censo IBGE 2022 para o município de Jacareí - SP"
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+dependencies = [
+    "geopandas>=0.14.0",
+    "pandas>=2.0.0",
+]
+
+[project.urls]
+Repository = "https://github.com/tardellirs/jacarei-em-dados"
+
+[tool.uv]
+dev-dependencies = []
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"

@@ -1,0 +1,31 @@
+@import "tailwindcss";
+
+/* Leaflet override: garantir que o mapa fique no z-index correto */
+.leaflet-container {
+  @apply w-full h-full;
+  z-index: 0;
+}
+
+/* Scrollbar customizada para o painel direito */
+.dashboard-scroll::-webkit-scrollbar {
+  width: 6px;
+}
+.dashboard-scroll::-webkit-scrollbar-track {
+  @apply bg-slate-100;
+}
+.dashboard-scroll::-webkit-scrollbar-thumb {
+  @apply bg-slate-300 rounded-full;
+}
+.dashboard-scroll::-webkit-scrollbar-thumb:hover {
+  @apply bg-slate-400;
+}
+
+/* Transição suave nos polígonos do mapa */
+.leaflet-interactive {
+  transition: fill-opacity 0.15s ease;
+}
+
+/* Remove o contorno azul retangular ao clicar nos setores */
+.leaflet-interactive:focus {
+  outline: none;
+}
