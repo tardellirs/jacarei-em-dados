@@ -36,9 +36,10 @@ function styleFeature(feature: Feature | undefined, selectedCd: string | null): 
 }
 
 /**
- * Ajusta o zoom quando features mudam (filtros) ou quando o sinal de reset dispara.
- * NÃO é responsável pelo zoom inicial — esse é gerenciado pelo prop `bounds`
- * do MapContainer, que funciona sincronamente na primeira renderização.
+ * Ajusta o zoom do mapa em três situações:
+ * 1. Carga inicial (features disponíveis pela primeira vez)
+ * 2. Mudança de filtro (features mudam)
+ * 3. Reset de zoom via "Limpar seleções"
  */
 function FitBounds({
   features,
@@ -50,30 +51,28 @@ function FitBounds({
   initialBounds: LatLngBounds | null
 }) {
   const map = useMap()
-  const isFirstRun = useRef(true)
+  const prevFeaturesLen = useRef(-1)
   const prevSignal = useRef<number | undefined>(undefined)
 
   useEffect(() => {
-    // Pular o primeiro disparo: o MapContainer já aplicou initialBounds na montagem
-    if (isFirstRun.current) {
-      isFirstRun.current = false
-      prevSignal.current = resetZoomSignal
-      return
-    }
-
     if (features.length === 0) return
 
+    const lenChanged = features.length !== prevFeaturesLen.current
     const signalChanged =
       resetZoomSignal !== undefined && resetZoomSignal !== prevSignal.current
+
+    if (!lenChanged && !signalChanged) return
+
+    prevFeaturesLen.current = features.length
     prevSignal.current = resetZoomSignal
 
     // Se o sinal de reset disparou, voltar aos bounds completos do município
     if (signalChanged && initialBounds) {
-      map.fitBounds(initialBounds, { padding: [4, 4] })
+      map.fitBounds(initialBounds, { padding: [10, 10], animate: true })
       return
     }
 
-    // Caso contrário, calcular bounds das features visíveis (pós-filtro)
+    // Calcular bounds das features visíveis
     try {
       const latlngs: [number, number][] = []
       const flatten = (arr: unknown[]): number[][] => {
@@ -88,7 +87,7 @@ function FitBounds({
         }
       }
       if (latlngs.length > 0) {
-        map.fitBounds(latlngs, { padding: [4, 4] })
+        map.fitBounds(latlngs, { padding: [10, 10] })
       }
     } catch {
       // ignore fitBounds errors
@@ -145,13 +144,10 @@ export function MapView({
 
   return (
     <MapContainer
-      // Se os bounds já foram calculados, usa-os diretamente na primeira renderização.
-      // O spinner de loading garante que MapContainer só monta após os dados estarem prontos.
-      bounds={initialBounds ?? undefined}
-      boundsOptions={{ padding: [4, 4] }}
-      // Fallback caso os bounds ainda não estejam disponíveis
       center={MAP_CENTER}
       zoom={MAP_ZOOM}
+      zoomSnap={0.25}
+      zoomDelta={0.5}
       className="w-full h-full"
       zoomControl={true}
     >
