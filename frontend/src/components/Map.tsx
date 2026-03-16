@@ -61,6 +61,14 @@ function FitBounds({
     const signalChanged =
       resetZoomSignal !== undefined && resetZoomSignal !== prevSignal.current
 
+    // Na carga inicial (prevFeaturesLen === -1), apenas registrar o comprimento
+    // e deixar o MapContainer usar o zoom/center iniciais sem interferir.
+    if (prevFeaturesLen.current === -1) {
+      prevFeaturesLen.current = features.length
+      prevSignal.current = resetZoomSignal
+      return
+    }
+
     if (!lenChanged && !signalChanged) return
 
     prevFeaturesLen.current = features.length
