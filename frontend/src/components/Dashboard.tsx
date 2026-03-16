@@ -7,35 +7,39 @@ import { ibgeSectorPdfUrl, hasSectorPdf } from '../utils/constants'
 
 interface DashboardProps {
   data: DashboardData
-  selectedFeatures: SectorFeature[]
+  selectedSector: SectorFeature | null   // seleção por clique simples
+  selectedFeatures: SectorFeature[]      // seleção por polígono (multi)
   visibleCount: number
   totalCount: number
 }
 
-export function Dashboard({ data, selectedFeatures, visibleCount, totalCount }: DashboardProps) {
-  const count = selectedFeatures.length
-  const singleSector = count === 1 ? selectedFeatures[0] : null
+export function Dashboard({ data, selectedSector, selectedFeatures, visibleCount, totalCount }: DashboardProps) {
+  const polyCount = selectedFeatures.length
+
+  // Determina o setor a exibir no título/PDF:
+  // clique simples usa selectedSector; polígono com 1 setor também mostra o setor
+  const displaySector = polyCount === 0 ? selectedSector : polyCount === 1 ? selectedFeatures[0] : null
 
   const title =
-    count === 1
-      ? `Setor ${singleSector!.properties.CD_SETOR}`
-      : count > 1
-      ? `${count} setores selecionados`
+    polyCount > 1
+      ? `${polyCount} setores selecionados`
+      : displaySector
+      ? `Setor ${displaySector.properties.CD_SETOR}`
       : 'Município de Jacareí – SP'
 
   const subtitle =
-    count === 1
-      ? singleSector!.properties.NM_DIST ?? ''
-      : count > 1
-      ? `${count.toLocaleString('pt-BR')} setores · clique para adicionar ou remover`
+    polyCount > 1
+      ? `${polyCount.toLocaleString('pt-BR')} setores · clique para adicionar ou remover`
+      : displaySector
+      ? displaySector.properties.NM_DIST ?? ''
       : visibleCount < totalCount
       ? `${visibleCount.toLocaleString('pt-BR')} setor(es) filtrado(s) de ${totalCount.toLocaleString('pt-BR')}`
       : `${totalCount.toLocaleString('pt-BR')} setores censitários`
 
-  const situacao = singleSector?.properties.SITUACAO ?? null
-  const pdfAvailable = singleSector ? hasSectorPdf(situacao) : false
+  const situacao = displaySector?.properties.SITUACAO ?? null
+  const pdfAvailable = displaySector ? hasSectorPdf(situacao) : false
   const pdfUrl = pdfAvailable
-    ? ibgeSectorPdfUrl(singleSector!.properties.CD_SETOR, situacao)
+    ? ibgeSectorPdfUrl(displaySector!.properties.CD_SETOR, situacao)
     : null
 
   return (
@@ -47,7 +51,7 @@ export function Dashboard({ data, selectedFeatures, visibleCount, totalCount }: 
             <h2 className="text-sm font-bold text-slate-800 truncate">{title}</h2>
             <p className="text-xs text-slate-500 mt-0.5">{subtitle}</p>
           </div>
-          {singleSector && (
+          {displaySector && (
             pdfUrl ? (
               <a
                 href={pdfUrl}
@@ -75,9 +79,9 @@ export function Dashboard({ data, selectedFeatures, visibleCount, totalCount }: 
         <SummaryCards data={data} />
 
         {/* Conteúdo condicional */}
-        {singleSector && !data.hasData ? (
+        {displaySector && !data.hasData ? (
           <div className="bg-white rounded-lg border border-slate-200 p-4">
-            <NoDataMessage cdSetor={singleSector.properties.CD_SETOR} />
+            <NoDataMessage cdSetor={displaySector.properties.CD_SETOR} />
           </div>
         ) : (
           <>

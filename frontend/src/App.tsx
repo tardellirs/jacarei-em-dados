@@ -11,7 +11,7 @@ import { findSectorsInPolygon } from './utils/polygonSelection'
 
 export function App() {
   const { features, filterOptions, initialBounds, loading, error } = useGeoData()
-  const { filters, setFilter, clearAll, applyFilters } = useFilters()
+  const { filters, selectedSector, setFilter, setSelectedSector, clearAll, applyFilters } = useFilters()
   const [resetZoomSignal, setResetZoomSignal] = useState(0)
 
   const visibleFeatures = useMemo(
@@ -30,8 +30,8 @@ export function App() {
   } = useSelection(visibleFeatures)
 
   const handleClear = useCallback(() => {
-    clearAll()
-    clearSelection()
+    clearAll()        // limpa filtros + selectedSector
+    clearSelection()  // limpa seleção por polígono
     setResetZoomSignal((s) => s + 1)
   }, [clearAll, clearSelection])
 
@@ -45,18 +45,24 @@ export function App() {
 
   const handleSectorClick = useCallback(
     (f: import('./types').SectorFeature) => {
-      const cd = f.properties.CD_SETOR
       if (mode === 'selected') {
-        toggleSector(cd)
-      } else if (mode === 'none') {
-        // Seleciona o setor individual, entrando no modo seleção
-        completePolygon([cd])
+        // Modo polígono: toggle do setor na seleção múltipla
+        toggleSector(f.properties.CD_SETOR)
+      } else {
+        // Modo normal: seleciona apenas esse setor (substitui o anterior)
+        setSelectedSector(f)
       }
     },
-    [mode, toggleSector, completePolygon]
+    [mode, toggleSector, setSelectedSector]
   )
 
-  const dashboardData = useDashboard(visibleFeatures, selectedFeatures)
+  // Ao iniciar desenho, limpa a seleção simples
+  const handleStartDrawing = useCallback(() => {
+    setSelectedSector(null)
+    startDrawing()
+  }, [setSelectedSector, startDrawing])
+
+  const dashboardData = useDashboard(visibleFeatures, selectedFeatures, selectedSector)
 
   if (loading) {
     return (
@@ -96,12 +102,13 @@ export function App() {
         <div className="flex-[55] min-h-0 lg:h-full h-[50vh]">
           <MapView
             features={visibleFeatures}
+            selectedSector={selectedSector}
             selectedCds={selectedCds}
             selectionMode={mode}
             onSectorClick={handleSectorClick}
             onSectorToggle={toggleSector}
             onPolygonComplete={handlePolygonComplete}
-            onStartDrawing={startDrawing}
+            onStartDrawing={handleStartDrawing}
             onClearSelection={clearSelection}
             initialBounds={initialBounds}
             resetZoomSignal={resetZoomSignal}
@@ -112,6 +119,7 @@ export function App() {
         <div className="flex-[45] min-h-0 lg:h-full h-[50vh] border-l border-slate-200">
           <Dashboard
             data={dashboardData}
+            selectedSector={selectedSector}
             selectedFeatures={selectedFeatures}
             visibleCount={visibleFeatures.length}
             totalCount={features.length}

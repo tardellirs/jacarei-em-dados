@@ -10,6 +10,7 @@ import 'leaflet/dist/leaflet.css'
 
 interface MapProps {
   features: SectorFeature[]
+  selectedSector: SectorFeature | null
   selectedCds: Set<string>
   selectionMode: SelectionMode
   onSectorClick: (f: SectorFeature) => void
@@ -21,9 +22,15 @@ interface MapProps {
   resetZoomSignal?: number
 }
 
-function styleFeature(feature: Feature | undefined, selectedCds: Set<string>): PathOptions {
+function styleFeature(
+  feature: Feature | undefined,
+  selectedCds: Set<string>,
+  selectedSectorCd: string | null
+): PathOptions {
   const props = (feature as SectorFeature)?.properties
-  const isSelected = props?.CD_SETOR ? selectedCds.has(props.CD_SETOR) : false
+  const isSelected = props?.CD_SETOR
+    ? selectedCds.has(props.CD_SETOR) || props.CD_SETOR === selectedSectorCd
+    : false
 
   if (isSelected) {
     return {
@@ -97,6 +104,7 @@ function FitBounds({
 
 export function MapView({
   features,
+  selectedSector,
   selectedCds,
   selectionMode,
   onSectorClick,
@@ -107,31 +115,34 @@ export function MapView({
   initialBounds,
   resetZoomSignal,
 }: MapProps) {
+  const selectedSectorCd = selectedSector?.properties.CD_SETOR ?? null
+
   const geoJsonKey = useMemo(
     () => features.map((f) => f.properties.CD_SETOR).join(','),
     [features]
   )
   const selectedKey = useMemo(
-    () => Array.from(selectedCds).sort().join(','),
-    [selectedCds]
+    () => Array.from(selectedCds).sort().join(',') + '|' + (selectedSectorCd ?? ''),
+    [selectedCds, selectedSectorCd]
   )
   const renderKey = `${geoJsonKey}|${selectedKey}`
 
   function onEachFeature(feature: Feature, layer: Layer) {
     const props = (feature as SectorFeature).properties
     const cd = props.CD_SETOR
+    const isSelected = selectedCds.has(cd) || cd === selectedSectorCd
 
     layer.on({
       mouseover(e) {
         const l = e.target
-        if (!selectedCds.has(cd)) {
+        if (!isSelected) {
           l.setStyle({ fillColor: '#3B82F6', fillOpacity: 0.40, weight: 1.2, color: '#1a1a1a' })
         }
       },
       mouseout(e) {
         const l = e.target
-        if (!selectedCds.has(cd)) {
-          l.setStyle(styleFeature(feature, selectedCds))
+        if (!isSelected) {
+          l.setStyle(styleFeature(feature, selectedCds, selectedSectorCd))
         }
       },
       click() {
@@ -161,7 +172,7 @@ export function MapView({
         <GeoJSON
           key={renderKey}
           data={{ type: 'FeatureCollection', features } as GeoJSON.FeatureCollection}
-          style={(f) => styleFeature(f, selectedCds)}
+          style={(f) => styleFeature(f, selectedCds, selectedSectorCd)}
           onEachFeature={onEachFeature}
         />
         <FitBounds
