@@ -1,8 +1,9 @@
 import { useEffect, useRef, useMemo } from 'react'
 import { MapContainer, TileLayer, GeoJSON, useMap } from 'react-leaflet'
-import type { Layer, PathOptions, Map as LeafletMap } from 'leaflet'
+import type { Layer, PathOptions } from 'leaflet'
 import type { Feature } from 'geojson'
 import type { SectorFeature } from '../types'
+import type { LatLngBounds } from '../hooks/useGeoData'
 import { MAP_CENTER, MAP_ZOOM } from '../utils/constants'
 import 'leaflet/dist/leaflet.css'
 
@@ -10,6 +11,7 @@ interface MapProps {
   features: SectorFeature[]
   selectedSector: SectorFeature | null
   onSectorClick: (f: SectorFeature) => void
+  initialBounds: LatLngBounds | null
   resetZoomSignal?: number
 }
 
@@ -25,7 +27,6 @@ function styleFeature(feature: Feature | undefined, selectedCd: string | null): 
       weight: 2,
     }
   }
-  // Default: sem preenchimento, contorno preto
   return {
     fillColor: '#1D4ED8',
     fillOpacity: 0,
@@ -34,41 +35,55 @@ function styleFeature(feature: Feature | undefined, selectedCd: string | null): 
   }
 }
 
+/**
+ * Ajusta o zoom quando features mudam (filtros) ou quando o sinal de reset dispara.
+ * NÃO é responsável pelo zoom inicial — esse é gerenciado pelo prop `bounds`
+ * do MapContainer, que funciona sincronamente na primeira renderização.
+ */
 function FitBounds({
   features,
   resetZoomSignal,
+  initialBounds,
 }: {
   features: SectorFeature[]
   resetZoomSignal?: number
+  initialBounds: LatLngBounds | null
 }) {
   const map = useMap()
-  const prevLen = useRef(0)
+  const isFirstRun = useRef(true)
   const prevSignal = useRef<number | undefined>(undefined)
 
   useEffect(() => {
+    // Pular o primeiro disparo: o MapContainer já aplicou initialBounds na montagem
+    if (isFirstRun.current) {
+      isFirstRun.current = false
+      prevSignal.current = resetZoomSignal
+      return
+    }
+
     if (features.length === 0) return
 
-    const lenChanged = features.length !== prevLen.current
     const signalChanged =
       resetZoomSignal !== undefined && resetZoomSignal !== prevSignal.current
-
-    if (!lenChanged && !signalChanged) return
-
-    prevLen.current = features.length
     prevSignal.current = resetZoomSignal
 
+    // Se o sinal de reset disparou, voltar aos bounds completos do município
+    if (signalChanged && initialBounds) {
+      map.fitBounds(initialBounds, { padding: [4, 4] })
+      return
+    }
+
+    // Caso contrário, calcular bounds das features visíveis (pós-filtro)
     try {
       const latlngs: [number, number][] = []
+      const flatten = (arr: unknown[]): number[][] => {
+        if (typeof arr[0] === 'number') return [arr as number[]]
+        return (arr as unknown[][]).flatMap(flatten)
+      }
       for (const f of features) {
-        const coords = f.geometry
-        if (!coords) continue
-        const flatten = (arr: unknown[]): number[][] => {
-          if (typeof arr[0] === 'number') return [arr as number[]]
-          return (arr as unknown[][]).flatMap(flatten)
-        }
-        const g = coords as { coordinates: unknown[] }
-        const pts = flatten(g.coordinates as unknown[])
-        for (const [lng, lat] of pts) {
+        if (!f.geometry) continue
+        const g = f.geometry as { coordinates: unknown[] }
+        for (const [lng, lat] of flatten(g.coordinates as unknown[])) {
           latlngs.push([lat as number, lng as number])
         }
       }
@@ -78,19 +93,23 @@ function FitBounds({
     } catch {
       // ignore fitBounds errors
     }
-  }, [features, map, resetZoomSignal])
+  }, [features, map, resetZoomSignal, initialBounds])
 
   return null
 }
 
-export function MapView({ features, selectedSector, onSectorClick, resetZoomSignal }: MapProps) {
+export function MapView({
+  features,
+  selectedSector,
+  onSectorClick,
+  initialBounds,
+  resetZoomSignal,
+}: MapProps) {
   const selectedCd = selectedSector?.properties?.CD_SETOR ?? null
   const geoJsonKey = useMemo(
     () => features.map((f) => f.properties.CD_SETOR).join(','),
     [features]
   )
-
-  // We need a separate key that also changes when selection changes
   const renderKey = `${geoJsonKey}|${selectedCd}`
 
   function onEachFeature(feature: Feature, layer: Layer) {
@@ -126,6 +145,11 @@ export function MapView({ features, selectedSector, onSectorClick, resetZoomSign
 
   return (
     <MapContainer
+      // Se os bounds já foram calculados, usa-os diretamente na primeira renderização.
+      // O spinner de loading garante que MapContainer só monta após os dados estarem prontos.
+      bounds={initialBounds ?? undefined}
+      boundsOptions={{ padding: [4, 4] }}
+      // Fallback caso os bounds ainda não estejam disponíveis
       center={MAP_CENTER}
       zoom={MAP_ZOOM}
       className="w-full h-full"
@@ -141,7 +165,11 @@ export function MapView({ features, selectedSector, onSectorClick, resetZoomSign
         style={(f) => styleFeature(f, selectedCd)}
         onEachFeature={onEachFeature}
       />
-      <FitBounds features={features} resetZoomSignal={resetZoomSignal} />
+      <FitBounds
+        features={features}
+        resetZoomSignal={resetZoomSignal}
+        initialBounds={initialBounds}
+      />
     </MapContainer>
   )
 }

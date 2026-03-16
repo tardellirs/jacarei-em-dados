@@ -3,17 +3,47 @@ import type { FeatureCollection } from 'geojson'
 import type { SectorFeature, FilterOptions } from '../types'
 import { GEOJSON_URL } from '../utils/constants'
 
+// Bounds no formato [[minLat, minLng], [maxLat, maxLng]]
+export type LatLngBounds = [[number, number], [number, number]]
+
 interface GeoDataState {
   features: SectorFeature[]
   filterOptions: FilterOptions
+  initialBounds: LatLngBounds | null
   loading: boolean
   error: string | null
+}
+
+/** Calcula o bounding box de todas as features diretamente das coordenadas. */
+function computeBounds(features: SectorFeature[]): LatLngBounds | null {
+  let minLat = Infinity, maxLat = -Infinity
+  let minLng = Infinity, maxLng = -Infinity
+
+  const flatten = (arr: unknown[]): number[][] => {
+    if (typeof arr[0] === 'number') return [arr as number[]]
+    return (arr as unknown[][]).flatMap(flatten)
+  }
+
+  for (const f of features) {
+    if (!f.geometry) continue
+    const g = f.geometry as { coordinates: unknown[] }
+    for (const [lng, lat] of flatten(g.coordinates as unknown[])) {
+      const la = lat as number, ln = lng as number
+      if (la < minLat) minLat = la
+      if (la > maxLat) maxLat = la
+      if (ln < minLng) minLng = ln
+      if (ln > maxLng) maxLng = ln
+    }
+  }
+
+  return isFinite(minLat) ? [[minLat, minLng], [maxLat, maxLng]] : null
 }
 
 export function useGeoData(): GeoDataState {
   const [state, setState] = useState<GeoDataState>({
     features: [],
     filterOptions: { distritos: [], situacoes: [], favelas: [] },
+    initialBounds: null,
     loading: true,
     error: null,
   })
@@ -46,6 +76,7 @@ export function useGeoData(): GeoDataState {
             situacoes: Array.from(situacoesSet).sort(),
             favelas: Array.from(favelasSet).sort(),
           },
+          initialBounds: computeBounds(features),
           loading: false,
           error: null,
         })
