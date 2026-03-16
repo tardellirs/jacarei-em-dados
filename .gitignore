@@ -49,5 +49,6 @@ Thumbs.db
 *.log
 npm-debug.log*
 
-# Claude Code
-.claude/settings.local.json
+# Claude Code (não versionar)
+.claude/
+CLAUDE.md
