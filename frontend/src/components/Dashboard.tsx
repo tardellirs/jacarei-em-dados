@@ -3,7 +3,7 @@ import { SummaryCards } from './SummaryCards'
 import { SexDistribution } from './SexDistribution'
 import { AgePyramid } from './AgePyramid'
 import { NoDataMessage } from './NoDataMessage'
-import { ibgeSectorPdfUrl } from '../utils/constants'
+import { ibgeSectorPdfUrl, hasSectorPdf } from '../utils/constants'
 
 interface DashboardProps {
   data: DashboardData
@@ -23,8 +23,10 @@ export function Dashboard({ data, selectedSector, visibleCount, totalCount }: Da
     ? `${visibleCount.toLocaleString('pt-BR')} setor(es) filtrado(s) de ${totalCount.toLocaleString('pt-BR')}`
     : `${totalCount.toLocaleString('pt-BR')} setores censitários`
 
-  const pdfUrl = selectedSector
-    ? ibgeSectorPdfUrl(selectedSector.properties.CD_SETOR, selectedSector.properties.SITUACAO)
+  const situacao = selectedSector?.properties.SITUACAO ?? null
+  const pdfAvailable = selectedSector ? hasSectorPdf(situacao) : false
+  const pdfUrl = pdfAvailable
+    ? ibgeSectorPdfUrl(selectedSector!.properties.CD_SETOR, situacao)
     : null
 
   return (
@@ -36,19 +38,25 @@ export function Dashboard({ data, selectedSector, visibleCount, totalCount }: Da
             <h2 className="text-sm font-bold text-slate-800 truncate">{title}</h2>
             <p className="text-xs text-slate-500 mt-0.5">{subtitle}</p>
           </div>
-          {pdfUrl && (
-            <a
-              href={pdfUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              title="Baixar mapa do setor (IBGE)"
-              className="shrink-0 flex items-center gap-1.5 text-xs font-medium text-white bg-[#1a3a5c] hover:bg-[#1e5c8a] transition-colors rounded px-2.5 py-1.5"
-            >
-              <svg viewBox="0 0 24 24" className="w-3.5 h-3.5 fill-current">
-                <path d="M19 9h-4V3H9v6H5l7 7 7-7zm-8 2V5h2v6h1.17L12 13.17 9.83 11H11zm-6 7h14v2H5v-2z"/>
-              </svg>
-              Mapa PDF
-            </a>
+          {selectedSector && (
+            pdfUrl ? (
+              <a
+                href={pdfUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                title="Baixar mapa do setor (IBGE)"
+                className="shrink-0 flex items-center gap-1.5 text-xs font-medium text-white bg-[#1a3a5c] hover:bg-[#1e5c8a] transition-colors rounded px-2.5 py-1.5"
+              >
+                <svg viewBox="0 0 24 24" className="w-3.5 h-3.5 fill-current">
+                  <path d="M19 9h-4V3H9v6H5l7 7 7-7zm-8 2V5h2v6h1.17L12 13.17 9.83 11H11zm-6 7h14v2H5v-2z"/>
+                </svg>
+                Mapa PDF
+              </a>
+            ) : (
+              <span className="shrink-0 text-[11px] text-slate-400 italic">
+                Sem mapa disponível no IBGE
+              </span>
+            )
           )}
         </div>
       </div>

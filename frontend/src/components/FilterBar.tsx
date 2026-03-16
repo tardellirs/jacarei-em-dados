@@ -38,7 +38,7 @@ function Select({
 }
 
 export function FilterBar({ filters, options, onFilterChange, onClear }: FilterBarProps) {
-  const hasFilters = filters.distrito || filters.situacao || filters.favela
+  const hasFilters = !!(filters.distrito || filters.situacao || filters.favela)
 
   return (
     <div className="bg-white border-b border-slate-200 px-4 py-2 flex flex-wrap items-center gap-x-4 gap-y-2 shrink-0">
@@ -66,14 +66,16 @@ export function FilterBar({ filters, options, onFilterChange, onClear }: FilterB
         onChange={(v) => onFilterChange('favela', v)}
       />
 
-      {hasFilters && (
-        <button
-          onClick={onClear}
-          className="text-xs bg-slate-600 text-white rounded px-3 py-1 hover:bg-slate-700 transition-colors cursor-pointer"
-        >
-          Limpar seleções
-        </button>
-      )}
+      <button
+        onClick={onClear}
+        className={`text-xs rounded px-3 py-1 transition-colors cursor-pointer ${
+          hasFilters
+            ? 'bg-slate-600 text-white hover:bg-slate-700'
+            : 'bg-slate-100 text-slate-400 hover:bg-slate-200'
+        }`}
+      >
+        Limpar seleções
+      </button>
     </div>
   )
 }

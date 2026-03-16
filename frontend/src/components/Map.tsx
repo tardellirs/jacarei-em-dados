@@ -10,6 +10,7 @@ interface MapProps {
   features: SectorFeature[]
   selectedSector: SectorFeature | null
   onSectorClick: (f: SectorFeature) => void
+  resetZoomSignal?: number
 }
 
 function styleFeature(feature: Feature | undefined, selectedCd: string | null): PathOptions {
@@ -33,20 +34,34 @@ function styleFeature(feature: Feature | undefined, selectedCd: string | null): 
   }
 }
 
-function FitBounds({ features }: { features: SectorFeature[] }) {
+function FitBounds({
+  features,
+  resetZoomSignal,
+}: {
+  features: SectorFeature[]
+  resetZoomSignal?: number
+}) {
   const map = useMap()
   const prevLen = useRef(0)
+  const prevSignal = useRef<number | undefined>(undefined)
 
   useEffect(() => {
-    if (features.length === 0 || features.length === prevLen.current) return
+    if (features.length === 0) return
+
+    const lenChanged = features.length !== prevLen.current
+    const signalChanged =
+      resetZoomSignal !== undefined && resetZoomSignal !== prevSignal.current
+
+    if (!lenChanged && !signalChanged) return
+
     prevLen.current = features.length
+    prevSignal.current = resetZoomSignal
 
     try {
       const latlngs: [number, number][] = []
       for (const f of features) {
         const coords = f.geometry
         if (!coords) continue
-        // Flat-map all coordinates to get bounding box
         const flatten = (arr: unknown[]): number[][] => {
           if (typeof arr[0] === 'number') return [arr as number[]]
           return (arr as unknown[][]).flatMap(flatten)
@@ -58,17 +73,17 @@ function FitBounds({ features }: { features: SectorFeature[] }) {
         }
       }
       if (latlngs.length > 0) {
-        map.fitBounds(latlngs, { padding: [8, 8] })
+        map.fitBounds(latlngs, { padding: [4, 4] })
       }
     } catch {
       // ignore fitBounds errors
     }
-  }, [features, map])
+  }, [features, map, resetZoomSignal])
 
   return null
 }
 
-export function MapView({ features, selectedSector, onSectorClick }: MapProps) {
+export function MapView({ features, selectedSector, onSectorClick, resetZoomSignal }: MapProps) {
   const selectedCd = selectedSector?.properties?.CD_SETOR ?? null
   const geoJsonKey = useMemo(
     () => features.map((f) => f.properties.CD_SETOR).join(','),
@@ -126,7 +141,7 @@ export function MapView({ features, selectedSector, onSectorClick }: MapProps) {
         style={(f) => styleFeature(f, selectedCd)}
         onEachFeature={onEachFeature}
       />
-      <FitBounds features={features} />
+      <FitBounds features={features} resetZoomSignal={resetZoomSignal} />
     </MapContainer>
   )
 }

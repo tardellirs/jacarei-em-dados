@@ -32,6 +32,15 @@ const UF_MAP: Record<string, string> = {
 }
 
 /**
+ * Retorna true apenas para setores Urbanos e Rurais, que possuem
+ * mapa cartográfico disponível no FTP do IBGE.
+ * Massas d'água e demais tipos não têm arquivo PDF disponível.
+ */
+export function hasSectorPdf(situacao: string | null): boolean {
+  return situacao === 'Urbana' || situacao === 'Rural'
+}
+
+/**
  * Gera a URL do mapa do setor censitário no FTP do IBGE.
  * MSU = setor Urbano, MSR = setor Rural
  * Padrão: .../SP/3524402/35244020500/MSU/352440205000010/A3_352440205000010_MSU.pdf

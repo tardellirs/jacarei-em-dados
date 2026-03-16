@@ -1,4 +1,4 @@
-import { useMemo } from 'react'
+import { useMemo, useState, useCallback } from 'react'
 import { Header } from './components/Header'
 import { FilterBar } from './components/FilterBar'
 import { MapView } from './components/Map'
@@ -11,6 +11,12 @@ export function App() {
   const { features, filterOptions, loading, error } = useGeoData()
   const { filters, selectedSector, setFilter, setSelectedSector, clearAll, applyFilters } =
     useFilters()
+  const [resetZoomSignal, setResetZoomSignal] = useState(0)
+
+  const handleClear = useCallback(() => {
+    clearAll()
+    setResetZoomSignal((s) => s + 1)
+  }, [clearAll])
 
   const visibleFeatures = useMemo(
     () => applyFilters(features),
@@ -48,7 +54,7 @@ export function App() {
         filters={filters}
         options={filterOptions}
         onFilterChange={setFilter}
-        onClear={clearAll}
+        onClear={handleClear}
       />
 
       {/* Layout principal: mapa (esq) + dashboard (dir) */}
@@ -59,6 +65,7 @@ export function App() {
             features={visibleFeatures}
             selectedSector={selectedSector}
             onSectorClick={setSelectedSector}
+            resetZoomSignal={resetZoomSignal}
           />
         </div>
 
