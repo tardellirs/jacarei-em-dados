@@ -56,6 +56,8 @@ export interface DashboardData {
   sectorCount: number
 }
 
+export type SelectionMode = 'none' | 'drawing' | 'selected'
+
 export interface FilterState {
   distrito: string
   situacao: string

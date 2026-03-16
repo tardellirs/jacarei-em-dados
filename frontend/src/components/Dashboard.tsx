@@ -7,26 +7,35 @@ import { ibgeSectorPdfUrl, hasSectorPdf } from '../utils/constants'
 
 interface DashboardProps {
   data: DashboardData
-  selectedSector: SectorFeature | null
+  selectedFeatures: SectorFeature[]
   visibleCount: number
   totalCount: number
 }
 
-export function Dashboard({ data, selectedSector, visibleCount, totalCount }: DashboardProps) {
-  const title = selectedSector
-    ? `Setor ${selectedSector.properties.CD_SETOR}`
-    : 'Município de Jacareí – SP'
+export function Dashboard({ data, selectedFeatures, visibleCount, totalCount }: DashboardProps) {
+  const count = selectedFeatures.length
+  const singleSector = count === 1 ? selectedFeatures[0] : null
 
-  const subtitle = selectedSector
-    ? selectedSector.properties.NM_DIST ?? ''
-    : visibleCount < totalCount
-    ? `${visibleCount.toLocaleString('pt-BR')} setor(es) filtrado(s) de ${totalCount.toLocaleString('pt-BR')}`
-    : `${totalCount.toLocaleString('pt-BR')} setores censitários`
+  const title =
+    count === 1
+      ? `Setor ${singleSector!.properties.CD_SETOR}`
+      : count > 1
+      ? `${count} setores selecionados`
+      : 'Município de Jacareí – SP'
 
-  const situacao = selectedSector?.properties.SITUACAO ?? null
-  const pdfAvailable = selectedSector ? hasSectorPdf(situacao) : false
+  const subtitle =
+    count === 1
+      ? singleSector!.properties.NM_DIST ?? ''
+      : count > 1
+      ? `${count.toLocaleString('pt-BR')} setores · clique para adicionar ou remover`
+      : visibleCount < totalCount
+      ? `${visibleCount.toLocaleString('pt-BR')} setor(es) filtrado(s) de ${totalCount.toLocaleString('pt-BR')}`
+      : `${totalCount.toLocaleString('pt-BR')} setores censitários`
+
+  const situacao = singleSector?.properties.SITUACAO ?? null
+  const pdfAvailable = singleSector ? hasSectorPdf(situacao) : false
   const pdfUrl = pdfAvailable
-    ? ibgeSectorPdfUrl(selectedSector!.properties.CD_SETOR, situacao)
+    ? ibgeSectorPdfUrl(singleSector!.properties.CD_SETOR, situacao)
     : null
 
   return (
@@ -38,7 +47,7 @@ export function Dashboard({ data, selectedSector, visibleCount, totalCount }: Da
             <h2 className="text-sm font-bold text-slate-800 truncate">{title}</h2>
             <p className="text-xs text-slate-500 mt-0.5">{subtitle}</p>
           </div>
-          {selectedSector && (
+          {singleSector && (
             pdfUrl ? (
               <a
                 href={pdfUrl}
@@ -66,9 +75,9 @@ export function Dashboard({ data, selectedSector, visibleCount, totalCount }: Da
         <SummaryCards data={data} />
 
         {/* Conteúdo condicional */}
-        {selectedSector && !data.hasData ? (
+        {singleSector && !data.hasData ? (
           <div className="bg-white rounded-lg border border-slate-200 p-4">
-            <NoDataMessage cdSetor={selectedSector.properties.CD_SETOR} />
+            <NoDataMessage cdSetor={singleSector.properties.CD_SETOR} />
           </div>
         ) : (
           <>
