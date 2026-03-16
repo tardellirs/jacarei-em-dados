@@ -19,7 +19,7 @@ export const COLOR_FEMALE = '#EC4899' // pink-500
 export const GEOJSON_URL = '/jacarei_setores_merged.geojson'
 
 export const MAP_CENTER: [number, number] = [-23.305, -45.965]
-export const MAP_ZOOM = 13
+export const MAP_ZOOM = 12
 
 // Mapeamento de código de estado IBGE → sigla UF
 const UF_MAP: Record<string, string> = {
