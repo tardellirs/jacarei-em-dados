@@ -99,25 +99,44 @@ export function DrawControl({ mode, onPolygonComplete, onCancel }: DrawControlPr
     cleanup()
     map.getContainer().style.cursor = 'crosshair'
 
+    // Pixel tolerance to snap-close onto the first vertex
+    const CLOSE_TOLERANCE_PX = 15
+
     const handleClick = (e: L.LeafletMouseEvent) => {
       L.DomEvent.stopPropagation(e as unknown as Event)
 
       const { lng, lat } = e.latlng
       const coord: [number, number] = [lng, lat]
-      verticesRef.current.push(coord)
-
       const verts = verticesRef.current
+
+      // Check if click is close enough to the first vertex to close the polygon
+      if (verts.length >= 3) {
+        const firstCoord = verts[0]
+        const firstPx = map.latLngToContainerPoint([firstCoord[1], firstCoord[0]])
+        const clickPx = map.latLngToContainerPoint([lat, lng])
+        const dx = firstPx.x - clickPx.x
+        const dy = firstPx.y - clickPx.y
+        if (Math.sqrt(dx * dx + dy * dy) <= CLOSE_TOLERANCE_PX) {
+          finishPolygon()
+          return
+        }
+      }
+
+      verts.push(coord)
 
       // First vertex marker (larger, clickable to close polygon)
       if (verts.length === 1) {
         const marker = L.circleMarker([lat, lng], {
-          radius: 6,
+          radius: 8,
           color: '#B91C1C',
           fillColor: '#EF4444',
           fillOpacity: 1,
           weight: 2,
         }).addTo(map)
 
+        // Show pointer cursor on hover to hint it's clickable
+        marker.on('mouseover', () => { map.getContainer().style.cursor = 'pointer' })
+        marker.on('mouseout', () => { map.getContainer().style.cursor = 'crosshair' })
         marker.on('click', (ev) => {
           L.DomEvent.stopPropagation(ev as unknown as Event)
           if (verticesRef.current.length >= 3) {
@@ -166,13 +185,35 @@ export function DrawControl({ mode, onPolygonComplete, onCancel }: DrawControlPr
       finishPolygon()
     }
 
+    const handleMouseMove = (e: L.LeafletMouseEvent) => {
+      const verts = verticesRef.current
+      if (verts.length < 3 || !firstMarkerRef.current) return
+
+      const firstCoord = verts[0]
+      const firstPx = map.latLngToContainerPoint([firstCoord[1], firstCoord[0]])
+      const movePx = map.latLngToContainerPoint(e.latlng)
+      const dx = firstPx.x - movePx.x
+      const dy = firstPx.y - movePx.y
+      const near = Math.sqrt(dx * dx + dy * dy) <= CLOSE_TOLERANCE_PX
+
+      // Highlight first marker and change cursor when close enough to snap-close
+      firstMarkerRef.current.setStyle({
+        radius: near ? 11 : 8,
+        color: near ? '#7F1D1D' : '#B91C1C',
+        fillColor: near ? '#DC2626' : '#EF4444',
+      })
+      map.getContainer().style.cursor = near ? 'pointer' : 'crosshair'
+    }
+
     map.on('click', handleClick)
     map.on('dblclick', handleDblClick)
+    map.on('mousemove', handleMouseMove)
     map.doubleClickZoom.disable()
 
     return () => {
       map.off('click', handleClick)
       map.off('dblclick', handleDblClick)
+      map.off('mousemove', handleMouseMove)
       map.doubleClickZoom.enable()
       map.getContainer().style.cursor = ''
     }
