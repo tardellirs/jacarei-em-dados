@@ -4,7 +4,7 @@ import { polygon as turfPolygon, multiPolygon as turfMultiPolygon } from '@turf/
 import type { FeatureCollection, Polygon, MultiPolygon } from 'geojson'
 import type { SectorFeature } from '../types'
 
-const OVERLAP_THRESHOLD = 0.70
+const OVERLAP_THRESHOLD = 0.40
 
 export function findSectorsInPolygon(
   drawnCoords: [number, number][],

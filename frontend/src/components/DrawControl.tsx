@@ -14,6 +14,7 @@ export function DrawControl({ mode, onPolygonComplete, onCancel }: DrawControlPr
   const verticesRef = useRef<[number, number][]>([])
   const markersRef = useRef<L.CircleMarker[]>([])
   const polylineRef = useRef<L.Polyline | null>(null)
+  const previewPolygonRef = useRef<L.Polygon | null>(null)
   const polygonLayerRef = useRef<L.Polygon | null>(null)
   const firstMarkerRef = useRef<L.CircleMarker | null>(null)
 
@@ -24,12 +25,33 @@ export function DrawControl({ mode, onPolygonComplete, onCancel }: DrawControlPr
       map.removeLayer(polylineRef.current)
       polylineRef.current = null
     }
+    if (previewPolygonRef.current) {
+      map.removeLayer(previewPolygonRef.current)
+      previewPolygonRef.current = null
+    }
     if (polygonLayerRef.current) {
       map.removeLayer(polygonLayerRef.current)
       polygonLayerRef.current = null
     }
     verticesRef.current = []
     firstMarkerRef.current = null
+  }
+
+  const updatePreviewPolygon = (verts: [number, number][]) => {
+    if (previewPolygonRef.current) {
+      map.removeLayer(previewPolygonRef.current)
+      previewPolygonRef.current = null
+    }
+    if (verts.length >= 3) {
+      const latlngs = verts.map(([lng, lat]) => [lat, lng] as [number, number])
+      previewPolygonRef.current = L.polygon(latlngs, {
+        color: 'transparent',
+        weight: 0,
+        fillColor: '#EF4444',
+        fillOpacity: 0.15,
+        interactive: false,
+      }).addTo(map)
+    }
   }
 
   const finishPolygon = () => {
@@ -40,20 +62,25 @@ export function DrawControl({ mode, onPolygonComplete, onCancel }: DrawControlPr
       return
     }
 
-    // Draw the completed polygon
+    // Remove drawing layers
     if (polylineRef.current) {
       map.removeLayer(polylineRef.current)
       polylineRef.current = null
+    }
+    if (previewPolygonRef.current) {
+      map.removeLayer(previewPolygonRef.current)
+      previewPolygonRef.current = null
     }
     markersRef.current.forEach((m) => map.removeLayer(m))
     markersRef.current = []
     firstMarkerRef.current = null
 
+    // Draw completed polygon (amber outline, red fill)
     const poly = L.polygon(verts.map(([lng, lat]) => [lat, lng] as [number, number]), {
-      color: '#F59E0B',
+      color: '#EF4444',
       weight: 2,
-      fillColor: '#FEF3C7',
-      fillOpacity: 0.25,
+      fillColor: '#EF4444',
+      fillOpacity: 0.15,
     })
     poly.addTo(map)
     polygonLayerRef.current = poly
@@ -73,7 +100,6 @@ export function DrawControl({ mode, onPolygonComplete, onCancel }: DrawControlPr
     map.getContainer().style.cursor = 'crosshair'
 
     const handleClick = (e: L.LeafletMouseEvent) => {
-      // Prevent propagation to GeoJSON layers
       L.DomEvent.stopPropagation(e as unknown as Event)
 
       const { lng, lat } = e.latlng
@@ -82,12 +108,12 @@ export function DrawControl({ mode, onPolygonComplete, onCancel }: DrawControlPr
 
       const verts = verticesRef.current
 
-      // First vertex marker (clickable to close polygon)
+      // First vertex marker (larger, clickable to close polygon)
       if (verts.length === 1) {
         const marker = L.circleMarker([lat, lng], {
           radius: 6,
-          color: '#F59E0B',
-          fillColor: '#FBBF24',
+          color: '#B91C1C',
+          fillColor: '#EF4444',
           fillOpacity: 1,
           weight: 2,
         }).addTo(map)
@@ -104,32 +130,34 @@ export function DrawControl({ mode, onPolygonComplete, onCancel }: DrawControlPr
         // Subsequent vertices
         const marker = L.circleMarker([lat, lng], {
           radius: 4,
-          color: '#F59E0B',
-          fillColor: '#FCD34D',
+          color: '#B91C1C',
+          fillColor: '#EF4444',
           fillOpacity: 1,
           weight: 1.5,
         }).addTo(map)
         markersRef.current.push(marker)
       }
 
-      // Update polyline
+      // Update dashed polyline
       if (polylineRef.current) {
         map.removeLayer(polylineRef.current)
       }
       if (verts.length >= 2) {
         const latlngs = verts.map(([lng, lat]) => [lat, lng] as [number, number])
         polylineRef.current = L.polyline(latlngs, {
-          color: '#F59E0B',
-          weight: 2,
-          dashArray: '5, 5',
+          color: '#EF4444',
+          weight: 3,
+          dashArray: '6, 6',
         }).addTo(map)
       }
+
+      // Update fill preview from 3rd point onward
+      updatePreviewPolygon(verts)
     }
 
     const handleDblClick = (e: L.LeafletMouseEvent) => {
       L.DomEvent.stopPropagation(e as unknown as Event)
       L.DomEvent.preventDefault(e as unknown as Event)
-      // Remove the last point added by the click that preceded dblclick
       verticesRef.current.pop()
       if (markersRef.current.length > 0) {
         const last = markersRef.current.pop()!
