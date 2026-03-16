@@ -114,13 +114,11 @@ export function MapView({
   function onEachFeature(feature: Feature, layer: Layer) {
     const props = (feature as SectorFeature).properties
     const hasData = props.V01006 != null
-    const pop = hasData ? `${Number(props.V01006).toLocaleString('pt-BR')} hab.` : 'Sem dados'
+    const pop = hasData ? Number(props.V01006).toLocaleString('pt-BR') : '—'
 
     layer.bindTooltip(
-      `<div class="text-xs font-medium">${props.CD_SETOR}</div>
-       <div class="text-xs text-slate-600">${props.NM_DIST ?? ''}</div>
-       <div class="text-xs font-semibold mt-0.5">${pop}</div>`,
-      { sticky: true, className: 'leaflet-tooltip-custom' }
+      `<div class="text-xs font-semibold">${pop} hab.</div>`,
+      { sticky: false, className: 'leaflet-tooltip-custom' }
     )
 
     layer.on({
