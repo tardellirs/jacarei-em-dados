@@ -146,7 +146,6 @@ export function MapView({
     <MapContainer
       center={MAP_CENTER}
       zoom={MAP_ZOOM}
-      zoomSnap={0.25}
       className="w-full h-full"
       zoomControl={true}
     >
