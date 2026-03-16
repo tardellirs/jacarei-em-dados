@@ -45,13 +45,15 @@ export function App() {
 
   const handleSectorClick = useCallback(
     (f: import('./types').SectorFeature) => {
+      const cd = f.properties.CD_SETOR
       if (mode === 'selected') {
-        toggleSector(f.properties.CD_SETOR)
+        toggleSector(cd)
+      } else if (mode === 'none') {
+        // Seleciona o setor individual, entrando no modo seleção
+        completePolygon([cd])
       }
-      // mode 'none': single-click without polygon just shows the sector data
-      // We pass this handler only in mode 'none', toggling is separate
     },
-    [mode, toggleSector]
+    [mode, toggleSector, completePolygon]
   )
 
   const dashboardData = useDashboard(visibleFeatures, selectedFeatures)
