@@ -6,24 +6,55 @@ import { Dashboard } from './components/Dashboard'
 import { useGeoData } from './hooks/useGeoData'
 import { useFilters } from './hooks/useFilters'
 import { useDashboard } from './hooks/useDashboard'
+import { useSelection } from './hooks/useSelection'
+import { findSectorsInPolygon } from './utils/polygonSelection'
 
 export function App() {
   const { features, filterOptions, initialBounds, loading, error } = useGeoData()
-  const { filters, selectedSector, setFilter, setSelectedSector, clearAll, applyFilters } =
-    useFilters()
+  const { filters, setFilter, clearAll, applyFilters } = useFilters()
   const [resetZoomSignal, setResetZoomSignal] = useState(0)
-
-  const handleClear = useCallback(() => {
-    clearAll()
-    setResetZoomSignal((s) => s + 1)
-  }, [clearAll])
 
   const visibleFeatures = useMemo(
     () => applyFilters(features),
     [applyFilters, features]
   )
 
-  const dashboardData = useDashboard(visibleFeatures, selectedSector)
+  const {
+    mode,
+    selectedCds,
+    selectedFeatures,
+    startDrawing,
+    completePolygon,
+    toggleSector,
+    clearSelection,
+  } = useSelection(visibleFeatures)
+
+  const handleClear = useCallback(() => {
+    clearAll()
+    clearSelection()
+    setResetZoomSignal((s) => s + 1)
+  }, [clearAll, clearSelection])
+
+  const handlePolygonComplete = useCallback(
+    (coords: [number, number][]) => {
+      const cds = findSectorsInPolygon(coords, visibleFeatures)
+      completePolygon(cds)
+    },
+    [visibleFeatures, completePolygon]
+  )
+
+  const handleSectorClick = useCallback(
+    (f: import('./types').SectorFeature) => {
+      if (mode === 'selected') {
+        toggleSector(f.properties.CD_SETOR)
+      }
+      // mode 'none': single-click without polygon just shows the sector data
+      // We pass this handler only in mode 'none', toggling is separate
+    },
+    [mode, toggleSector]
+  )
+
+  const dashboardData = useDashboard(visibleFeatures, selectedFeatures)
 
   if (loading) {
     return (
@@ -63,8 +94,13 @@ export function App() {
         <div className="flex-[55] min-h-0 lg:h-full h-[50vh]">
           <MapView
             features={visibleFeatures}
-            selectedSector={selectedSector}
-            onSectorClick={setSelectedSector}
+            selectedCds={selectedCds}
+            selectionMode={mode}
+            onSectorClick={handleSectorClick}
+            onSectorToggle={toggleSector}
+            onPolygonComplete={handlePolygonComplete}
+            onStartDrawing={startDrawing}
+            onClearSelection={clearSelection}
             initialBounds={initialBounds}
             resetZoomSignal={resetZoomSignal}
           />
@@ -74,7 +110,7 @@ export function App() {
         <div className="flex-[45] min-h-0 lg:h-full h-[50vh] border-l border-slate-200">
           <Dashboard
             data={dashboardData}
-            selectedSector={selectedSector}
+            selectedFeatures={selectedFeatures}
             visibleCount={visibleFeatures.length}
             totalCount={features.length}
           />

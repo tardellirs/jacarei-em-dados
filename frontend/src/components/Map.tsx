@@ -2,22 +2,28 @@ import { useEffect, useRef, useMemo } from 'react'
 import { MapContainer, TileLayer, GeoJSON, useMap } from 'react-leaflet'
 import type { Layer, PathOptions } from 'leaflet'
 import type { Feature } from 'geojson'
-import type { SectorFeature } from '../types'
+import type { SectorFeature, SelectionMode } from '../types'
 import type { LatLngBounds } from '../hooks/useGeoData'
 import { MAP_CENTER, MAP_ZOOM } from '../utils/constants'
+import { DrawControl } from './DrawControl'
 import 'leaflet/dist/leaflet.css'
 
 interface MapProps {
   features: SectorFeature[]
-  selectedSector: SectorFeature | null
+  selectedCds: Set<string>
+  selectionMode: SelectionMode
   onSectorClick: (f: SectorFeature) => void
+  onSectorToggle: (cd: string) => void
+  onPolygonComplete: (coords: [number, number][]) => void
+  onStartDrawing: () => void
+  onClearSelection: () => void
   initialBounds: LatLngBounds | null
   resetZoomSignal?: number
 }
 
-function styleFeature(feature: Feature | undefined, selectedCd: string | null): PathOptions {
+function styleFeature(feature: Feature | undefined, selectedCds: Set<string>): PathOptions {
   const props = (feature as SectorFeature)?.properties
-  const isSelected = props?.CD_SETOR === selectedCd
+  const isSelected = props?.CD_SETOR ? selectedCds.has(props.CD_SETOR) : false
 
   if (isSelected) {
     return {
@@ -35,12 +41,6 @@ function styleFeature(feature: Feature | undefined, selectedCd: string | null): 
   }
 }
 
-/**
- * Ajusta o zoom do mapa em três situações:
- * 1. Carga inicial (features disponíveis pela primeira vez)
- * 2. Mudança de filtro (features mudam)
- * 3. Reset de zoom via "Limpar seleções"
- */
 function FitBounds({
   features,
   resetZoomSignal,
@@ -66,13 +66,11 @@ function FitBounds({
     prevFeaturesLen.current = features.length
     prevSignal.current = resetZoomSignal
 
-    // Se o sinal de reset disparou, voltar aos bounds completos do município
     if (signalChanged && initialBounds) {
       map.fitBounds(initialBounds, { padding: [10, 10], animate: true })
       return
     }
 
-    // Calcular bounds das features visíveis
     try {
       const latlngs: [number, number][] = []
       const flatten = (arr: unknown[]): number[][] => {
@@ -99,64 +97,137 @@ function FitBounds({
 
 export function MapView({
   features,
-  selectedSector,
+  selectedCds,
+  selectionMode,
   onSectorClick,
+  onSectorToggle,
+  onPolygonComplete,
+  onStartDrawing,
+  onClearSelection,
   initialBounds,
   resetZoomSignal,
 }: MapProps) {
-  const selectedCd = selectedSector?.properties?.CD_SETOR ?? null
   const geoJsonKey = useMemo(
     () => features.map((f) => f.properties.CD_SETOR).join(','),
     [features]
   )
-  const renderKey = `${geoJsonKey}|${selectedCd}`
+  const selectedKey = useMemo(
+    () => Array.from(selectedCds).sort().join(','),
+    [selectedCds]
+  )
+  const renderKey = `${geoJsonKey}|${selectedKey}`
 
   function onEachFeature(feature: Feature, layer: Layer) {
     const props = (feature as SectorFeature).properties
+    const cd = props.CD_SETOR
 
     layer.on({
       mouseover(e) {
         const l = e.target
-        if (props.CD_SETOR !== selectedCd) {
+        if (!selectedCds.has(cd)) {
           l.setStyle({ fillColor: '#3B82F6', fillOpacity: 0.40, weight: 1.2, color: '#1a1a1a' })
         }
       },
       mouseout(e) {
         const l = e.target
-        if (props.CD_SETOR !== selectedCd) {
-          l.setStyle(styleFeature(feature, selectedCd))
+        if (!selectedCds.has(cd)) {
+          l.setStyle(styleFeature(feature, selectedCds))
         }
       },
       click() {
-        onSectorClick(feature as SectorFeature)
+        if (selectionMode === 'selected') {
+          onSectorToggle(cd)
+        } else if (selectionMode === 'none') {
+          onSectorClick(feature as SectorFeature)
+        }
+        // drawing mode: clicks handled by DrawControl
       },
     })
   }
 
   return (
-    <MapContainer
-      center={MAP_CENTER}
-      zoom={MAP_ZOOM}
-      zoomSnap={1}
-      className="w-full h-full"
-      zoomControl={true}
-    >
-      <TileLayer
-        attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-        url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-      />
-      <GeoJSON
-        key={renderKey}
-        data={{ type: 'FeatureCollection', features } as GeoJSON.FeatureCollection}
-        style={(f) => styleFeature(f, selectedCd)}
-        onEachFeature={onEachFeature}
-      />
-      <FitBounds
-        features={features}
-        resetZoomSignal={resetZoomSignal}
-        initialBounds={initialBounds}
-      />
-    </MapContainer>
+    <div className="relative w-full h-full">
+      <MapContainer
+        center={MAP_CENTER}
+        zoom={MAP_ZOOM}
+        zoomSnap={1}
+        className="w-full h-full"
+        zoomControl={true}
+      >
+        <TileLayer
+          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+          url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+        />
+        <GeoJSON
+          key={renderKey}
+          data={{ type: 'FeatureCollection', features } as GeoJSON.FeatureCollection}
+          style={(f) => styleFeature(f, selectedCds)}
+          onEachFeature={onEachFeature}
+        />
+        <FitBounds
+          features={features}
+          resetZoomSignal={resetZoomSignal}
+          initialBounds={initialBounds}
+        />
+        <DrawControl
+          mode={selectionMode}
+          onPolygonComplete={onPolygonComplete}
+          onCancel={onClearSelection}
+        />
+      </MapContainer>
+
+      {/* Toolbar flutuante */}
+      <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-[1000] flex gap-2">
+        {selectionMode === 'none' && (
+          <button
+            onClick={onStartDrawing}
+            title="Desenhar polígono para selecionar setores"
+            className="flex items-center gap-1.5 px-3 py-2 bg-white border border-slate-300 rounded-lg shadow-md text-sm font-medium text-slate-700 hover:bg-slate-50 hover:border-slate-400 transition-colors"
+          >
+            <svg viewBox="0 0 24 24" className="w-4 h-4 fill-none stroke-current stroke-2">
+              <polygon points="12,3 20,8 20,16 12,21 4,16 4,8" />
+            </svg>
+            Selecionar por polígono
+          </button>
+        )}
+
+        {selectionMode === 'drawing' && (
+          <div className="flex items-center gap-2 px-3 py-2 bg-amber-50 border border-amber-300 rounded-lg shadow-md text-sm text-amber-800">
+            <svg viewBox="0 0 24 24" className="w-4 h-4 fill-none stroke-current stroke-2 shrink-0">
+              <circle cx="12" cy="12" r="9" />
+              <line x1="12" y1="8" x2="12" y2="12" />
+              <line x1="12" y1="16" x2="12.01" y2="16" />
+            </svg>
+            <span>Clique para adicionar vértices · Duplo clique ou clique no 1º vértice para fechar</span>
+            <button
+              onClick={onClearSelection}
+              className="ml-1 text-amber-700 hover:text-amber-900 font-medium underline shrink-0"
+            >
+              Cancelar
+            </button>
+          </div>
+        )}
+
+        {selectionMode === 'selected' && (
+          <div className="flex items-center gap-2 px-3 py-2 bg-blue-50 border border-blue-300 rounded-lg shadow-md text-sm text-blue-800">
+            <svg viewBox="0 0 24 24" className="w-4 h-4 fill-none stroke-current stroke-2 shrink-0">
+              <polyline points="20,6 9,17 4,12" />
+            </svg>
+            <span>{selectedCds.size} setor{selectedCds.size !== 1 ? 'es' : ''} selecionado{selectedCds.size !== 1 ? 's' : ''} · Clique para adicionar/remover</span>
+            <button
+              onClick={onClearSelection}
+              title="Limpar seleção"
+              className="ml-1 shrink-0 text-blue-600 hover:text-blue-900"
+            >
+              <svg viewBox="0 0 24 24" className="w-4 h-4 fill-none stroke-current stroke-2">
+                <line x1="18" y1="6" x2="6" y2="18" />
+                <line x1="6" y1="6" x2="18" y2="18" />
+              </svg>
+            </button>
+          </div>
+        )}
+      </div>
+    </div>
   )
 }
 
