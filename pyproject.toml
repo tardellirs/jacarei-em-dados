@@ -8,6 +8,7 @@ license = { text = "MIT" }
 dependencies = [
     "geopandas>=0.14.0",
     "pandas>=2.0.0",
+    "topojson>=1.8",
 ]
 
 [project.urls]

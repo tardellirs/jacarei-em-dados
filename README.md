@@ -37,7 +37,7 @@ Navegue pelo mapa, aplique filtros por distrito e tipo de ocupação, selecione 
 | Mapa | react-leaflet + Leaflet 1.9 |
 | Geoespacial | Turf.js (`@turf/intersect`, `@turf/area`) |
 | Gráficos | recharts (distribuição por sexo) + CSS puro (pirâmide etária) |
-| Pré-processamento | Python 3.10 + geopandas + pandas |
+| Pré-processamento | Python 3.10 + geopandas + pandas + topojson |
 
 ---
 
@@ -45,7 +45,7 @@ Navegue pelo mapa, aplique filtros por distrito e tipo de ocupação, selecione 
 
 - **Node.js** 18 ou superior
 - **npm** 9 ou superior
-- **Python** 3.10+ com `geopandas` e `pandas` (apenas para regenerar o GeoJSON)
+- **Python** 3.10+ com `geopandas`, `pandas` e `topojson` (apenas para regenerar o GeoJSON)
 
 Os dados brutos não estão incluídos no repositório. Faça o download direto do portal do IBGE:
 
@@ -65,7 +65,7 @@ Os dados brutos não estão incluídos no repositório. Faça o download direto 
 python3 -m venv .venv
 source .venv/bin/activate
 
-pip install geopandas pandas
+pip install geopandas pandas topojson
 
 # Gerar o GeoJSON mesclado
 python scripts/preprocess.py

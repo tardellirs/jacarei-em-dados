@@ -7,6 +7,7 @@ import os
 import sys
 import pandas as pd
 import geopandas as gpd
+import topojson
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 GPKG_PATH = os.path.join(BASE_DIR, "dados", "Jacarei_setores_malha.gpkg")
@@ -37,9 +38,10 @@ def main():
         print("  Reprojetando para EPSG:4326...")
         gdf = gdf.to_crs(epsg=4326)
 
-    # Simplificar geometrias para reduzir tamanho do arquivo
-    print("  Simplificando geometrias...")
-    gdf["geometry"] = gdf["geometry"].simplify(tolerance=0.0003, preserve_topology=True)
+    # Simplificar geometrias preservando bordas compartilhadas entre setores
+    print("  Simplificando geometrias (topojson)...")
+    topo = topojson.Topology(gdf, toposimplify=0.0003)
+    gdf = topo.to_gdf()
 
     # Padronizar colunas de estatísticas do GPKG (minúsculas → maiúsculas)
     rename_map = {}
