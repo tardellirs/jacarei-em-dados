@@ -4,7 +4,14 @@ import type { Layer, PathOptions } from 'leaflet'
 import type { Feature } from 'geojson'
 import type { SectorFeature, SelectionMode } from '../types'
 import type { LatLngBounds } from '../hooks/useGeoData'
-import { MAP_CENTER, MAP_ZOOM } from '../utils/constants'
+import {
+  MAP_CENTER,
+  MAP_ZOOM,
+  IPCA_AGO2022_FEV2026,
+  RENDA_FAIXAS,
+  RENDA_FAIXA_COLORS,
+  RENDA_SEM_DADOS_COLOR,
+} from '../utils/constants'
 import { DrawControl } from './DrawControl'
 import 'leaflet/dist/leaflet.css'
 
@@ -20,32 +27,42 @@ interface MapProps {
   onClearSelection: () => void
   initialBounds: LatLngBounds | null
   resetZoomSignal?: number
+  showIncomeOverlay: boolean
+  onToggleIncomeOverlay: () => void
+}
+
+function incomeColor(idx: number): string {
+  return idx >= 0 ? RENDA_FAIXA_COLORS[idx] : RENDA_SEM_DADOS_COLOR
 }
 
 function styleFeature(
   feature: Feature | undefined,
   selectedCds: Set<string>,
-  selectedSectorCd: string | null
+  selectedSectorCd: string | null,
+  showOverlay: boolean,
+  bracketMap: Map<string, number>
 ): PathOptions {
   const props = (feature as SectorFeature)?.properties
-  const isSelected = props?.CD_SETOR
-    ? selectedCds.has(props.CD_SETOR) || props.CD_SETOR === selectedSectorCd
-    : false
+  const cd = props?.CD_SETOR
+  const isSelected = cd ? selectedCds.has(cd) || cd === selectedSectorCd : false
+
+  if (!showOverlay) {
+    // Comportamento original
+    if (isSelected) {
+      return { fillColor: '#1D4ED8', fillOpacity: 0.65, color: '#1E3A8A', weight: 2 }
+    }
+    return { fillColor: '#1D4ED8', fillOpacity: 0, color: '#1a1a1a', weight: 1.1 }
+  }
+
+  // Overlay de renda ativo
+  const idx = cd != null ? (bracketMap.get(cd) ?? -1) : -1
+  const fillColor = incomeColor(idx)
+  const noData = idx === -1
 
   if (isSelected) {
-    return {
-      fillColor: '#1D4ED8',
-      fillOpacity: 0.65,
-      color: '#1E3A8A',
-      weight: 2,
-    }
+    return { fillColor, fillOpacity: noData ? 0.35 : 0.70, color: '#1E3A8A', weight: 3 }
   }
-  return {
-    fillColor: '#1D4ED8',
-    fillOpacity: 0,
-    color: '#1a1a1a',
-    weight: 1.1,
-  }
+  return { fillColor, fillOpacity: noData ? 0.35 : 0.55, color: '#1a1a1a', weight: 1.1 }
 }
 
 function FitBounds({
@@ -114,8 +131,27 @@ export function MapView({
   onClearSelection,
   initialBounds,
   resetZoomSignal,
+  showIncomeOverlay,
+  onToggleIncomeOverlay,
 }: MapProps) {
   const selectedSectorCd = selectedSector?.properties.CD_SETOR ?? null
+
+  // Pré-computa índice de faixa de renda por setor (O(n) uma vez por mudança de features)
+  const incomeBracketMap = useMemo(() => {
+    const map = new Map<string, number>()
+    for (const f of features) {
+      const cd = f.properties.CD_SETOR
+      const v = f.properties.V06004
+      if (v == null || v === 0) {
+        map.set(cd, -1)
+        continue
+      }
+      const corrected = v * IPCA_AGO2022_FEV2026
+      const idx = RENDA_FAIXAS.findIndex((faixa) => corrected < faixa.maxVal)
+      map.set(cd, idx >= 0 ? idx : RENDA_FAIXAS.length - 1)
+    }
+    return map
+  }, [features])
 
   const geoJsonKey = useMemo(
     () => features.map((f) => f.properties.CD_SETOR).join(','),
@@ -125,7 +161,8 @@ export function MapView({
     () => Array.from(selectedCds).sort().join(',') + '|' + (selectedSectorCd ?? ''),
     [selectedCds, selectedSectorCd]
   )
-  const renderKey = `${geoJsonKey}|${selectedKey}`
+  // Incluir overlay no renderKey para forçar remount ao alternar
+  const renderKey = `${geoJsonKey}|${selectedKey}|overlay:${showIncomeOverlay}`
 
   function onEachFeature(feature: Feature, layer: Layer) {
     const props = (feature as SectorFeature).properties
@@ -136,13 +173,18 @@ export function MapView({
       mouseover(e) {
         const l = e.target
         if (!isSelected) {
-          l.setStyle({ fillColor: '#3B82F6', fillOpacity: 0.40, weight: 1.2, color: '#1a1a1a' })
+          if (showIncomeOverlay) {
+            const idx = incomeBracketMap.get(cd) ?? -1
+            l.setStyle({ fillColor: incomeColor(idx), fillOpacity: 0.75, weight: 1.5, color: '#1a1a1a' })
+          } else {
+            l.setStyle({ fillColor: '#3B82F6', fillOpacity: 0.40, weight: 1.2, color: '#1a1a1a' })
+          }
         }
       },
       mouseout(e) {
         const l = e.target
         if (!isSelected) {
-          l.setStyle(styleFeature(feature, selectedCds, selectedSectorCd))
+          l.setStyle(styleFeature(feature, selectedCds, selectedSectorCd, showIncomeOverlay, incomeBracketMap))
         }
       },
       click() {
@@ -172,7 +214,7 @@ export function MapView({
         <GeoJSON
           key={renderKey}
           data={{ type: 'FeatureCollection', features } as GeoJSON.FeatureCollection}
-          style={(f) => styleFeature(f, selectedCds, selectedSectorCd)}
+          style={(f) => styleFeature(f, selectedCds, selectedSectorCd, showIncomeOverlay, incomeBracketMap)}
           onEachFeature={onEachFeature}
         />
         <FitBounds
@@ -187,8 +229,51 @@ export function MapView({
         />
       </MapContainer>
 
+      {/* Legenda do overlay de renda */}
+      {showIncomeOverlay && (
+        <div className="absolute bottom-20 left-3 z-[1000] bg-white/90 backdrop-blur-sm border border-slate-200 rounded-lg shadow-md px-3 py-2.5">
+          <p className="text-[11px] font-semibold text-slate-700 mb-1.5">Renda média (SM 2026)</p>
+          {RENDA_FAIXAS.map((faixa, i) => (
+            <div key={i} className="flex items-center gap-2 mb-1">
+              <span
+                className="w-4 h-3 rounded-sm shrink-0 border border-black/10"
+                style={{ backgroundColor: RENDA_FAIXA_COLORS[i] }}
+              />
+              <span className="text-[11px] text-slate-600">{faixa.label}</span>
+            </div>
+          ))}
+          <div className="flex items-center gap-2 mt-1 pt-1 border-t border-slate-200">
+            <span
+              className="w-4 h-3 rounded-sm shrink-0 border border-black/10"
+              style={{ backgroundColor: RENDA_SEM_DADOS_COLOR }}
+            />
+            <span className="text-[11px] text-slate-400">Sem dados</span>
+          </div>
+        </div>
+      )}
+
       {/* Toolbar flutuante */}
       <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-[1000] flex gap-2">
+        {/* Botão overlay de renda — sempre visível */}
+        <button
+          onClick={onToggleIncomeOverlay}
+          title="Colorir mapa por renda do responsável"
+          className={[
+            'flex items-center gap-1.5 px-3 py-2 border rounded-lg shadow-md text-sm font-medium transition-colors',
+            showIncomeOverlay
+              ? 'bg-amber-100 border-amber-400 text-amber-800 hover:bg-amber-200'
+              : 'bg-white border-slate-300 text-slate-700 hover:bg-slate-50 hover:border-slate-400',
+          ].join(' ')}
+        >
+          <svg viewBox="0 0 20 20" className="w-4 h-4 fill-current">
+            <rect x="2"  y="2"  width="7" height="7" rx="1" opacity="0.30" />
+            <rect x="11" y="2"  width="7" height="7" rx="1" opacity="0.55" />
+            <rect x="2"  y="11" width="7" height="7" rx="1" opacity="0.75" />
+            <rect x="11" y="11" width="7" height="7" rx="1" opacity="1.00" />
+          </svg>
+          Renda
+        </button>
+
         {selectionMode === 'none' && (
           <button
             onClick={onStartDrawing}

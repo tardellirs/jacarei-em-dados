@@ -13,6 +13,8 @@ export function App() {
   const { features, filterOptions, initialBounds, loading, error } = useGeoData()
   const { filters, selectedSector, setFilter, setSelectedSector, clearAll, applyFilters } = useFilters()
   const [resetZoomSignal, setResetZoomSignal] = useState(0)
+  const [showIncomeOverlay, setShowIncomeOverlay] = useState(false)
+  const toggleIncomeOverlay = useCallback(() => setShowIncomeOverlay((v) => !v), [])
 
   const visibleFeatures = useMemo(
     () => applyFilters(features),
@@ -112,6 +114,8 @@ export function App() {
             onClearSelection={clearSelection}
             initialBounds={initialBounds}
             resetZoomSignal={resetZoomSignal}
+            showIncomeOverlay={showIncomeOverlay}
+            onToggleIncomeOverlay={toggleIncomeOverlay}
           />
         </div>
 
