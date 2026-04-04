@@ -18,8 +18,8 @@ export function CorRacaView({ data }: CorRacaViewProps) {
 
   return (
     <div className="bg-white rounded-lg border border-slate-200 p-4">
-      <h3 className="text-sm font-semibold text-slate-700 mb-3">Cor ou Raça</h3>
-      <PieChart data={slices} height={320} />
+      <h3 className="text-base font-semibold text-slate-700 mb-3">Cor ou Raça</h3>
+      <PieChart data={slices} height={380} />
     </div>
   )
 }

@@ -24,28 +24,28 @@ export function AlfabetizacaoView({ data }: AlfabetizacaoViewProps) {
 
   return (
     <div className="bg-white rounded-lg border border-slate-200 p-4">
-      <h3 className="text-sm font-semibold text-slate-700 mb-3">Alfabetização</h3>
+      <h3 className="text-base font-semibold text-slate-700 mb-3">Alfabetização</h3>
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         {/* 15+ anos */}
-        <div>
-          <p className="text-xs font-semibold text-slate-600 text-center mb-1">15 anos ou mais</p>
+        <div className="flex flex-col items-center">
+          <p className="text-sm font-semibold text-slate-700 text-center mb-1">15 anos ou mais</p>
           {taxa15 && (
             <p className="text-xs text-slate-500 text-center mb-2">
               Taxa: <span className="font-bold text-[#1D4ED8]">{taxa15}%</span>
             </p>
           )}
-          <PieChart data={slices15} height={300} />
+          <PieChart data={slices15} height={360} />
         </div>
 
         {/* 60+ anos */}
-        <div>
-          <p className="text-xs font-semibold text-slate-600 text-center mb-1">60 anos ou mais</p>
+        <div className="flex flex-col items-center">
+          <p className="text-sm font-semibold text-slate-700 text-center mb-1">60 anos ou mais</p>
           {taxa60 && (
             <p className="text-xs text-slate-500 text-center mb-2">
               Taxa: <span className="font-bold text-[#1D4ED8]">{taxa60}%</span>
             </p>
           )}
-          <PieChart data={slices60} height={300} />
+          <PieChart data={slices60} height={360} />
         </div>
       </div>
     </div>

@@ -22,12 +22,12 @@ export function ParentescoView({ data }: ParentescoViewProps) {
 
   return (
     <div className="bg-white rounded-lg border border-slate-200 p-4">
-      <h3 className="text-sm font-semibold text-slate-700 mb-3">
+      <h3 className="text-base font-semibold text-slate-700 mb-3">
         Responsável pelo Domicílio
       </h3>
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-        <PieChart data={sexoSlices} title="Por sexo" height={300} />
-        <PieChart data={idadeSlices} title="Por faixa etária" height={300} />
+        <PieChart data={sexoSlices} title="Por sexo" height={360} />
+        <PieChart data={idadeSlices} title="Por faixa etária" height={360} />
       </div>
     </div>
   )
