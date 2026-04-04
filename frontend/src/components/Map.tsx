@@ -1,4 +1,4 @@
-import { useEffect, useRef, useMemo } from 'react'
+import { useEffect, useRef, useMemo, useState } from 'react'
 import { MapContainer, TileLayer, GeoJSON, useMap } from 'react-leaflet'
 import type { Layer, PathOptions } from 'leaflet'
 import type { Feature } from 'geojson'
@@ -198,6 +198,27 @@ export function MapView({
 
   const activeConfig = activeOverlay ? OVERLAY_CONFIGS[activeOverlay] : null
 
+  // Estado do painel de camadas
+  const [panelOpen, setPanelOpen] = useState(false)
+  const panelRef = useRef<HTMLDivElement>(null)
+
+  // Fecha ao clicar fora
+  useEffect(() => {
+    if (!panelOpen) return
+    function onMouseDown(e: MouseEvent) {
+      if (panelRef.current && !panelRef.current.contains(e.target as Node)) {
+        setPanelOpen(false)
+      }
+    }
+    document.addEventListener('mousedown', onMouseDown)
+    return () => document.removeEventListener('mousedown', onMouseDown)
+  }, [panelOpen])
+
+  function handleOverlaySelect(type: OverlayType) {
+    onToggleOverlay(type)
+    setPanelOpen(false)
+  }
+
   return (
     <div className="relative w-full h-full">
       <MapContainer
@@ -229,7 +250,7 @@ export function MapView({
         />
       </MapContainer>
 
-      {/* Legenda do overlay ativo */}
+      {/* Legenda do overlay ativo — bottom-left */}
       {activeConfig && (
         <div className="absolute bottom-6 left-3 z-[1000] bg-white/90 backdrop-blur-sm border border-slate-200 rounded-lg shadow-md px-3 py-2.5">
           <p className="text-[11px] font-semibold text-slate-700 mb-1.5">{activeConfig.title}</p>
@@ -254,32 +275,89 @@ export function MapView({
 
       {/* Toolbar top-left — abaixo do zoom +/- */}
       <div className="absolute top-[92px] left-2.5 z-[1000] flex flex-col gap-1">
-        {/* Botões de overlay */}
-        {OVERLAY_ORDER.map((type) => {
-          const config = OVERLAY_CONFIGS[type]
-          const isActive = activeOverlay === type
-          return (
-            <button
-              key={type}
-              onClick={() => onToggleOverlay(type)}
-              title={config.title}
-              className={[
-                'flex items-center gap-1.5 px-2 py-1.5 border rounded-lg shadow-sm text-xs font-medium transition-colors whitespace-nowrap',
-                isActive
-                  ? 'bg-amber-100 border-amber-400 text-amber-800 hover:bg-amber-200'
-                  : 'bg-white border-slate-300 text-slate-700 hover:bg-slate-50',
-              ].join(' ')}
-            >
-              <svg viewBox="0 0 20 20" className="w-3.5 h-3.5 fill-current shrink-0">
-                <rect x="2"  y="2"  width="7" height="7" rx="1" opacity="0.30" />
-                <rect x="11" y="2"  width="7" height="7" rx="1" opacity="0.55" />
-                <rect x="2"  y="11" width="7" height="7" rx="1" opacity="0.75" />
-                <rect x="11" y="11" width="7" height="7" rx="1" opacity="1.00" />
-              </svg>
-              {config.buttonLabel}
-            </button>
-          )
-        })}
+
+        {/* Botão único de camadas + painel dropdown */}
+        <div ref={panelRef} className="relative">
+          <button
+            onClick={() => setPanelOpen((v) => !v)}
+            title="Camadas do mapa"
+            className={[
+              'flex items-center gap-1.5 px-2 py-1.5 border rounded-lg shadow-sm text-xs font-medium transition-colors whitespace-nowrap',
+              activeOverlay
+                ? 'bg-amber-100 border-amber-400 text-amber-800 hover:bg-amber-200'
+                : panelOpen
+                ? 'bg-slate-100 border-slate-400 text-slate-700'
+                : 'bg-white border-slate-300 text-slate-700 hover:bg-slate-50',
+            ].join(' ')}
+          >
+            {/* Ícone de camadas empilhadas */}
+            <svg viewBox="0 0 20 20" className="w-3.5 h-3.5 fill-current shrink-0">
+              <path d="M10 2L2 6.5 10 11l8-4.5L10 2z" opacity="0.45"/>
+              <path d="M2 10l8 4.5L18 10" stroke="currentColor" strokeWidth="1.5" fill="none" opacity="0.65"/>
+              <path d="M2 13.5l8 4.5 8-4.5" stroke="currentColor" strokeWidth="1.5" fill="none" opacity="1"/>
+            </svg>
+            {activeConfig ? activeConfig.buttonLabel : 'Camadas'}
+            {/* Indicador de overlay ativo */}
+            {activeOverlay && (
+              <span className="w-1.5 h-1.5 rounded-full bg-amber-500 shrink-0" />
+            )}
+          </button>
+
+          {/* Painel de seleção — abre à direita */}
+          {panelOpen && (
+            <div className="absolute left-full ml-2 top-0 w-52 bg-white rounded-lg shadow-xl border border-slate-200 overflow-hidden">
+              <div className="px-3 py-2 bg-slate-50 border-b border-slate-200">
+                <p className="text-[11px] font-semibold text-slate-500 uppercase tracking-wide">Camadas do mapa</p>
+              </div>
+
+              {OVERLAY_ORDER.map((type) => {
+                const config = OVERLAY_CONFIGS[type]
+                const isActive = activeOverlay === type
+                return (
+                  <button
+                    key={type}
+                    onClick={() => handleOverlaySelect(type)}
+                    className={[
+                      'w-full flex items-center gap-2.5 px-3 py-2.5 text-xs text-left transition-colors',
+                      isActive
+                        ? 'bg-amber-50 text-amber-800 hover:bg-amber-100'
+                        : 'text-slate-700 hover:bg-slate-50',
+                    ].join(' ')}
+                  >
+                    {/* Swatch com cor representativa do meio da escala */}
+                    <span
+                      className="w-4 h-4 rounded shrink-0 border border-black/10"
+                      style={{ backgroundColor: config.colors[2] }}
+                    />
+                    <span className="flex-1 font-medium">{config.buttonLabel}</span>
+                    {isActive && (
+                      <svg viewBox="0 0 16 16" className="w-3.5 h-3.5 shrink-0 text-amber-600 fill-none stroke-current stroke-2">
+                        <polyline points="2,8 6,12 14,4" strokeLinecap="round" strokeLinejoin="round"/>
+                      </svg>
+                    )}
+                  </button>
+                )
+              })}
+
+              {/* Remover camada ativa */}
+              {activeOverlay && (
+                <>
+                  <div className="border-t border-slate-100 mx-3" />
+                  <button
+                    onClick={() => handleOverlaySelect(activeOverlay)}
+                    className="w-full flex items-center gap-2 px-3 py-2 text-xs text-slate-400 hover:text-red-600 hover:bg-red-50 transition-colors"
+                  >
+                    <svg viewBox="0 0 16 16" className="w-3.5 h-3.5 shrink-0 fill-none stroke-current stroke-2">
+                      <circle cx="8" cy="8" r="6" />
+                      <line x1="5" y1="8" x2="11" y2="8" strokeLinecap="round"/>
+                    </svg>
+                    Remover camada
+                  </button>
+                </>
+              )}
+            </div>
+          )}
+        </div>
 
         {/* Separador */}
         <div className="border-t border-slate-300 mx-1 my-0.5" />
