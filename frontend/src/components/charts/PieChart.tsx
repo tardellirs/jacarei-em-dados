@@ -37,7 +37,7 @@ export function PieChart({ data, title, height = 200, innerRadius = 0 }: PieChar
     return (
       <div className="flex flex-col items-center gap-1">
         {title && <p className="text-xs font-semibold text-slate-600 text-center">{title}</p>}
-        <p className="text-xs text-slate-400 italic">Sem dados</p>
+        <p className="text-xs text-slate-400 italic">Sem dados disponíveis</p>
       </div>
     )
   }

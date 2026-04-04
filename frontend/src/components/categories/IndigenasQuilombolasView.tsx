@@ -11,17 +11,27 @@ interface PanelProps {
 
 const FAIXA_COLORS = ['#3B82F6', '#10B981', '#F97316', '#F43F5E']
 
+function SigiloNote() {
+  return (
+    <p className="text-[11px] text-slate-400 italic text-center">
+      Dados suprimidos (sigilo estatístico IBGE)
+    </p>
+  )
+}
+
 function PopPanel({ title, data, faixaLabels }: PanelProps) {
   const sexoSlices = [
     { name: 'Masculino', value: data.masculino, color: COLOR_MALE },
     { name: 'Feminino', value: data.feminino, color: COLOR_FEMALE },
   ]
+  const sexoTotal = data.masculino + data.feminino
 
   const faixaData = faixaLabels.map((label, i) => ({
     label,
     value: data.porFaixaEtaria[i] ?? 0,
     color: FAIXA_COLORS[i],
   }))
+  const faixaTotal = faixaData.reduce((s, d) => s + d.value, 0)
 
   return (
     <div className="bg-slate-50 rounded-lg border border-slate-200 p-3 flex flex-col gap-3">
@@ -42,7 +52,10 @@ function PopPanel({ title, data, faixaLabels }: PanelProps) {
             <p className="text-xs font-semibold text-slate-600 text-center mb-1">
               {title} por sexo
             </p>
-            <PieChart data={sexoSlices} height={160} innerRadius={40} />
+            {sexoTotal > 0
+              ? <PieChart data={sexoSlices} height={160} innerRadius={40} />
+              : <SigiloNote />
+            }
           </div>
 
           {/* Distribuição por grupo etário */}
@@ -50,7 +63,10 @@ function PopPanel({ title, data, faixaLabels }: PanelProps) {
             <p className="text-xs font-semibold text-slate-600 mb-2">
               {title} por grupo etário
             </p>
-            <StackedBar data={faixaData} />
+            {faixaTotal > 0
+              ? <StackedBar data={faixaData} />
+              : <SigiloNote />
+            }
           </div>
         </>
       )}
