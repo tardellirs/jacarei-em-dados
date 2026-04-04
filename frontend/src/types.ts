@@ -157,9 +157,16 @@ export interface IndigenasQuilombolasData {
   quilombolas: PopulacaoEspecialData
 }
 
+export interface RendaFaixa {
+  label: string
+  count: number   // setores nessa faixa
+}
+
 export interface RendaData {
-  rendaMedia: number          // rendimento médio ponderado (R$); 0 se sem dados
-  totalResponsaveis: number   // total de responsáveis com rendimento declarado
+  rendaMediaCorrigida: number    // média ponderada corrigida pelo IPCA até fev/2026 (R$)
+  totalResponsaveis: number      // responsáveis com rendimento declarado
+  sectorCount: number            // setores com dados de renda
+  distribuicaoSetores: RendaFaixa[]  // quantos setores em cada faixa de SM
 }
 
 export interface DashboardData {

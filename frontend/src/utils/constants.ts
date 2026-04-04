@@ -77,6 +77,20 @@ export const QUILOMBOLAS_COLS = ['V03196', 'V03197', 'V03198'] as const
 export const QUILOMBOLAS_FAIXA_COLS = ['V03199', 'V03200', 'V03201', 'V03202'] as const
 export const QUILOMBOLAS_FAIXA_LABELS = ['0 a 14 anos', '15 a 29 anos', '30 a 59 anos', '60 anos ou mais']
 
+// ── Renda ──
+export const SALARIO_MINIMO_2026 = 1631
+// Correção IPCA acumulada agosto/2022 → fevereiro/2026
+export const IPCA_AGO2022_FEV2026 = 1.1665
+
+// Faixas em múltiplos do SM 2026 (aplicadas ao valor já corrigido)
+export const RENDA_FAIXAS = [
+  { label: 'Até 1 SM',      maxVal: SALARIO_MINIMO_2026 },
+  { label: '1 a 2 SM',      maxVal: SALARIO_MINIMO_2026 * 2 },
+  { label: '2 a 3 SM',      maxVal: SALARIO_MINIMO_2026 * 3 },
+  { label: '3 a 5 SM',      maxVal: SALARIO_MINIMO_2026 * 5 },
+  { label: 'Acima de 5 SM', maxVal: Infinity },
+] as const
+
 export const COLOR_MALE = '#3B82F6'   // blue-500
 export const COLOR_FEMALE = '#EC4899' // pink-500
 

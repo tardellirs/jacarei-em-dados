@@ -1,7 +1,15 @@
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  Tooltip,
+  ResponsiveContainer,
+  Cell,
+  LabelList,
+} from 'recharts'
 import type { RendaData } from '../../types'
-
-// Salário mínimo em vigor durante o Censo 2022 (referência agosto/2022)
-const SALARIO_MINIMO_2022 = 1212
+import { SALARIO_MINIMO_2026 } from '../../utils/constants'
 
 interface RendaViewProps {
   data: RendaData
@@ -15,10 +23,13 @@ function formatNumber(value: number): string {
   return value.toLocaleString('pt-BR')
 }
 
+const BAR_COLORS = ['#60A5FA', '#3B82F6', '#2563EB', '#1D4ED8', '#1a3a5c']
+
 export function RendaView({ data }: RendaViewProps) {
-  const { rendaMedia, totalResponsaveis } = data
-  const temDados = rendaMedia > 0 && totalResponsaveis > 0
-  const salarios = temDados ? (rendaMedia / SALARIO_MINIMO_2022).toFixed(1) : null
+  const { rendaMediaCorrigida, totalResponsaveis, sectorCount, distribuicaoSetores } = data
+  const temDados = rendaMediaCorrigida > 0 && totalResponsaveis > 0
+  const salarios = temDados ? (rendaMediaCorrigida / SALARIO_MINIMO_2026).toFixed(1) : null
+  const mostrarDistribuicao = sectorCount > 1
 
   return (
     <div className="bg-white rounded-lg border border-slate-200 p-4">
@@ -34,15 +45,71 @@ export function RendaView({ data }: RendaViewProps) {
               Rendimento médio mensal
             </p>
             <p className="text-4xl font-bold text-[#1a3a5c] leading-tight">
-              {formatCurrency(rendaMedia)}
+              {formatCurrency(rendaMediaCorrigida)}
             </p>
             {salarios && (
               <p className="text-sm text-slate-500 mt-1">
-                <span className="font-semibold text-slate-700">{salarios}×</span> o salário mínimo de 2022
-                <span className="text-slate-400"> (R$ {SALARIO_MINIMO_2022.toLocaleString('pt-BR')})</span>
+                <span className="font-semibold text-slate-700">{salarios}×</span> o salário mínimo de 2026
+                <span className="text-slate-400"> (R$ {SALARIO_MINIMO_2026.toLocaleString('pt-BR')})</span>
               </p>
             )}
           </div>
+
+          {/* Distribuição dos setores por faixa de renda */}
+          {mostrarDistribuicao && (
+            <div>
+              <p className="text-sm font-semibold text-slate-700 text-center mb-3">
+                Distribuição dos setores por faixa de renda
+              </p>
+              <div className="w-full">
+                <ResponsiveContainer width="100%" height={220}>
+                  <BarChart
+                    data={distribuicaoSetores}
+                    margin={{ top: 18, right: 16, left: 0, bottom: 4 }}
+                  >
+                    <XAxis
+                      dataKey="label"
+                      tick={{ fontSize: 11, fill: '#64748b' }}
+                      tickLine={false}
+                      axisLine={false}
+                    />
+                    <YAxis
+                      allowDecimals={false}
+                      tick={{ fontSize: 11, fill: '#64748b' }}
+                      tickLine={false}
+                      axisLine={false}
+                      width={28}
+                    />
+                    <Tooltip
+                      formatter={(value: number) => [
+                        `${value} setor${value !== 1 ? 'es' : ''}`,
+                        'Quantidade',
+                      ]}
+                      contentStyle={{
+                        fontSize: 12,
+                        borderRadius: 6,
+                        border: '1px solid #e2e8f0',
+                      }}
+                    />
+                    <Bar dataKey="count" radius={[4, 4, 0, 0]} animationDuration={400}>
+                      {distribuicaoSetores.map((_, i) => (
+                        <Cell key={i} fill={BAR_COLORS[i % BAR_COLORS.length]} />
+                      ))}
+                      <LabelList
+                        dataKey="count"
+                        position="top"
+                        style={{ fontSize: 11, fill: '#475569', fontWeight: 600 }}
+                        formatter={(v: number) => (v > 0 ? v : '')}
+                      />
+                    </Bar>
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+              <p className="text-[11px] text-slate-400 text-center mt-1">
+                Faixas em múltiplos do salário mínimo 2026 (R$ {SALARIO_MINIMO_2026.toLocaleString('pt-BR')})
+              </p>
+            </div>
+          )}
 
           {/* Responsáveis com renda declarada */}
           <div className="flex items-center justify-between px-4 py-3 bg-slate-50 rounded-lg border border-slate-100">
@@ -51,9 +118,10 @@ export function RendaView({ data }: RendaViewProps) {
           </div>
 
           <p className="text-[11px] text-slate-400 italic">
-            Fonte: Censo Demográfico IBGE 2022 · V06004 – Rendimento nominal médio mensal do responsável pelo domicílio.
-            Quando múltiplos setores estão selecionados, a média é ponderada pelo número de responsáveis.
-            Valores "X" (sigilo estatístico) são descartados do cálculo.
+            Fonte: Censo Demográfico IBGE 2022 · V06004 – Rendimento nominal médio mensal do responsável.
+            Valores corrigidos pelo IPCA acumulado de agosto/2022 a fevereiro/2026 (+16,65%).
+            Seleção múltipla: média ponderada pelo número de responsáveis.
+            Valores "X" (sigilo estatístico) descartados do cálculo.
           </p>
         </div>
       )}
