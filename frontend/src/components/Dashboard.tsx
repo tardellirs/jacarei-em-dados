@@ -1,8 +1,16 @@
-import type { DashboardData, SectorFeature } from '../types'
+import { useState } from 'react'
+import type { DashboardData, SectorFeature, DashboardCategory } from '../types'
 import { SummaryCards } from './SummaryCards'
-import { SexDistribution } from './SexDistribution'
-import { AgePyramid } from './AgePyramid'
 import { NoDataMessage } from './NoDataMessage'
+import { CategoryTabs } from './CategoryTabs'
+import {
+  DemografiaView,
+  CorRacaView,
+  AlfabetizacaoView,
+  DomicilioView,
+  ParentescoView,
+  IndigenasQuilombolasView,
+} from './categories'
 import { ibgeSectorPdfUrl, hasSectorPdf } from '../utils/constants'
 
 interface DashboardProps {
@@ -13,7 +21,26 @@ interface DashboardProps {
   totalCount: number
 }
 
+function renderCategory(category: DashboardCategory, data: DashboardData) {
+  switch (category) {
+    case 'demografia':
+      return <DemografiaView data={data} />
+    case 'cor_ou_raca':
+      return <CorRacaView data={data.corRaca} />
+    case 'alfabetizacao':
+      return <AlfabetizacaoView data={data.alfabetizacao} />
+    case 'domicilio':
+      return <DomicilioView data={data.domicilio} />
+    case 'parentesco':
+      return <ParentescoView data={data.parentesco} />
+    case 'indigenas_quilombolas':
+      return <IndigenasQuilombolasView data={data.indigenasQuilombolas} />
+  }
+}
+
 export function Dashboard({ data, selectedSector, selectedFeatures, visibleCount, totalCount }: DashboardProps) {
+  const [activeCategory, setActiveCategory] = useState<DashboardCategory>('demografia')
+
   const polyCount = selectedFeatures.length
 
   // Determina o setor a exibir no título/PDF:
@@ -85,8 +112,8 @@ export function Dashboard({ data, selectedSector, selectedFeatures, visibleCount
           </div>
         ) : (
           <>
-            <SexDistribution data={data} />
-            <AgePyramid data={data} />
+            <CategoryTabs active={activeCategory} onChange={setActiveCategory} />
+            {renderCategory(activeCategory, data)}
           </>
         )}
       </div>
