@@ -27,7 +27,7 @@ export function AlfabetizacaoView({ data }: AlfabetizacaoViewProps) {
       <h3 className="text-base font-semibold text-slate-700 mb-3">Alfabetização</h3>
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         {/* 15+ anos */}
-        <div className="flex flex-col items-center">
+        <div>
           <p className="text-sm font-semibold text-slate-700 text-center mb-1">15 anos ou mais</p>
           {taxa15 && (
             <p className="text-xs text-slate-500 text-center mb-2">
@@ -38,7 +38,7 @@ export function AlfabetizacaoView({ data }: AlfabetizacaoViewProps) {
         </div>
 
         {/* 60+ anos */}
-        <div className="flex flex-col items-center">
+        <div>
           <p className="text-sm font-semibold text-slate-700 text-center mb-1">60 anos ou mais</p>
           {taxa60 && (
             <p className="text-xs text-slate-500 text-center mb-2">

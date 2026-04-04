@@ -43,7 +43,7 @@ export function PieChart({ data, title, height = 200, innerRadius = 0 }: PieChar
   }
 
   return (
-    <div className="flex flex-col items-center">
+    <div className="w-full">
       {title && <p className="text-sm font-semibold text-slate-700 text-center mb-2">{title}</p>}
       <ResponsiveContainer width="100%" height={height}>
         <RechartsPieChart>

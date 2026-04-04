@@ -11,7 +11,7 @@ describe('CategoryTabs', () => {
   it('renders all 6 tab labels', () => {
     render(<CategoryTabs active="demografia" onChange={() => {}} />)
     expect(screen.getByText('Demografia')).toBeInTheDocument()
-    expect(screen.getByText('Cor/Raça')).toBeInTheDocument()
+    expect(screen.getByText('Cor ou Raça')).toBeInTheDocument()
     expect(screen.getByText('Alfabetização')).toBeInTheDocument()
     expect(screen.getByText('Domicílio')).toBeInTheDocument()
     expect(screen.getByText('Parentesco')).toBeInTheDocument()
@@ -20,7 +20,7 @@ describe('CategoryTabs', () => {
 
   it('marks the active tab with aria-selected=true', () => {
     render(<CategoryTabs active="cor_ou_raca" onChange={() => {}} />)
-    const activeTab = screen.getByRole('tab', { name: /Cor\/Raça/ })
+    const activeTab = screen.getByRole('tab', { name: /Cor ou Raça/ })
     expect(activeTab).toHaveAttribute('aria-selected', 'true')
   })
 
