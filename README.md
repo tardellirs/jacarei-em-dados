@@ -2,7 +2,7 @@
 
 Jacareí em Dados é um dashboard geoespacial interativo que transforma os microdados do Censo IBGE 2022 em visualizações exploráveis por setor censitário.
 
-Navegue pelo mapa, aplique filtros por distrito e tipo de ocupação, selecione setores individualmente ou desenhe um polígono para agregar múltiplos setores de uma vez. O painel lateral exibe automaticamente população, domicílios, distribuição por sexo e pirâmide etária — tudo processado no próprio navegador, sem backend.
+Navegue pelo mapa, aplique filtros por distrito e tipo de ocupação, selecione setores individualmente ou desenhe um polígono para agregar múltiplos setores de uma vez. O painel lateral exibe dados em 7 categorias: Demografia, Cor/Raça, Alfabetização, Domicílio, Parentesco, Indígenas/Quilombolas e Renda — tudo processado no próprio navegador, sem backend. O mapa possui overlay coroplético de renda que colore os setores por faixa salarial.
 
 ![React](https://img.shields.io/badge/React-18-61DAFB?logo=react&logoColor=white)
 ![TypeScript](https://img.shields.io/badge/TypeScript-5-3178C6?logo=typescript&logoColor=white)
@@ -17,6 +17,8 @@ Navegue pelo mapa, aplique filtros por distrito e tipo de ocupação, selecione 
 ## Funcionalidades
 
 - **Mapa interativo** — 548 setores censitários de Jacareí renderizados via react-leaflet; hover com highlight e zoom automático por filtro
+- **Overlay coroplético de renda** — botão "Renda" na toolbar do mapa colore os setores pela renda média corrigida pelo IPCA, em escala YlOrRd-5 por faixas de salário mínimo; legenda integrada
+- **7 categorias no painel** — Demografia, Cor/Raça, Alfabetização, Domicílio, Parentesco, Indígenas/Quilombolas e Renda, navegadas por abas
 - **Filtros combinados** — filtre por Distrito, Urbana/Rural e Favelas/Comunidades simultaneamente (lógica AND)
 - **Seleção individual** — clique em qualquer setor para ver seus dados isolados no painel
 - **Seleção por polígono** — desenhe um polígono livre no mapa; todos os setores com ≥ 40% da área dentro são selecionados automaticamente
@@ -24,7 +26,7 @@ Navegue pelo mapa, aplique filtros por distrito e tipo de ocupação, selecione 
 - **Agregação automática** — o painel agrega dados de todos os setores selecionados em tempo real
 - **Pirâmide etária** — visualização por 11 faixas etárias, masculino e feminino, em CSS flexbox puro
 - **Link para mapa PDF** — acesso direto ao mapa do setor no portal do IBGE (quando disponível)
-- **Sem backend** — toda a lógica roda no browser com GeoJSON estático (~1 MB)
+- **Sem backend** — toda a lógica roda no browser com GeoJSON estático (~1.6 MB)
 
 ---
 
@@ -101,6 +103,7 @@ npm run build
 5. **Editar seleção** — com o polígono fechado, clique em qualquer setor para adicioná-lo ou removê-lo da seleção.
 6. **Limpar** — clique no X da barra de seleção ou em *Limpar seleções* para voltar ao estado inicial.
 7. **Mapa PDF** — quando um setor individual está selecionado, o botão *Mapa PDF* abre o mapa oficial do setor no portal do IBGE.
+8. **Overlay de renda** — clique em *Renda* na barra flutuante do mapa para colorir os setores por faixa de renda (amarelo → vermelho). A legenda aparece no canto inferior-esquerdo. Clique novamente para desativar.
 
 ---
 
