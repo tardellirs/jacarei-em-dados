@@ -91,6 +91,17 @@ export const RENDA_FAIXAS = [
   { label: 'Acima de 5 SM', maxVal: Infinity },
 ] as const
 
+// Paleta YlOrRd-5 (ColorBrewer) — uma cor por faixa, índice alinhado com RENDA_FAIXAS
+export const RENDA_FAIXA_COLORS = [
+  '#FFFFB2', // Até 1 SM  — amarelo claro
+  '#FECC5C', // 1 a 2 SM  — laranja claro
+  '#FD8D3C', // 2 a 3 SM  — laranja
+  '#F03B20', // 3 a 5 SM  — laranja escuro
+  '#BD0026', // Acima de 5 SM — vermelho escuro
+] as const
+
+export const RENDA_SEM_DADOS_COLOR = '#D1D5DB' // cinza (setores sem V06004)
+
 export const COLOR_MALE = '#3B82F6'   // blue-500
 export const COLOR_FEMALE = '#EC4899' // pink-500
 
