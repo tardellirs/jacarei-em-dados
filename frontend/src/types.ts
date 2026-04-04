@@ -110,6 +110,8 @@ export type SectorFeature = Feature<Geometry, SectorProperties>
 
 // ── Categorias do Dashboard ──
 
+export type OverlayType = 'renda' | 'densidade' | 'alfabetizacao' | 'cor_raca'
+
 export type DashboardCategory =
   | 'demografia'
   | 'cor_ou_raca'

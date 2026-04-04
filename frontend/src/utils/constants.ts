@@ -102,6 +102,109 @@ export const RENDA_FAIXA_COLORS = [
 
 export const RENDA_SEM_DADOS_COLOR = '#D1D5DB' // cinza (setores sem V06004)
 
+// ── Sistema Multi-Overlay Coroplético ──────────────────────────────────────
+
+import type { OverlayType, SectorProperties } from '../types'
+
+export interface OverlayBracket {
+  label: string
+  maxVal: number  // limite superior exclusivo; Infinity na última faixa
+}
+
+export interface OverlayConfig {
+  key: OverlayType
+  title: string          // título da legenda
+  buttonLabel: string    // label do botão na toolbar
+  brackets: OverlayBracket[]
+  colors: readonly string[]  // uma cor por faixa, mesmo índice
+  noDataColor: string
+  /** Retorna a métrica numérica do setor, ou null se sem dados. */
+  getValue: (p: SectorProperties) => number | null
+}
+
+export const OVERLAY_CONFIGS: Record<OverlayType, OverlayConfig> = {
+  renda: {
+    key: 'renda',
+    title: 'Renda média (SM 2026)',
+    buttonLabel: 'Renda',
+    brackets: RENDA_FAIXAS as unknown as OverlayBracket[],
+    colors: RENDA_FAIXA_COLORS,
+    noDataColor: RENDA_SEM_DADOS_COLOR,
+    getValue: (p) =>
+      p.V06004 != null && p.V06004 > 0 ? p.V06004 * IPCA_AGO2022_FEV2026 : null,
+  },
+  densidade: {
+    key: 'densidade',
+    title: 'Densidade populacional (hab/km²)',
+    buttonLabel: 'Densidade',
+    brackets: [
+      { label: 'Até 1.000',         maxVal: 1000  },
+      { label: '1.000 – 3.000',     maxVal: 3000  },
+      { label: '3.000 – 6.000',     maxVal: 6000  },
+      { label: '6.000 – 10.000',    maxVal: 10000 },
+      { label: 'Acima de 10.000',   maxVal: Infinity },
+    ],
+    colors: ['#EFF3FF', '#BDD7E7', '#6BAED6', '#3182BD', '#08519C'],
+    noDataColor: '#D1D5DB',
+    getValue: (p) =>
+      p.V01006 != null && p.AREA_KM2 != null && p.AREA_KM2 > 0
+        ? p.V01006 / p.AREA_KM2
+        : null,
+  },
+  alfabetizacao: {
+    key: 'alfabetizacao',
+    title: 'Taxa de alfabetização 15+ (%)',
+    buttonLabel: 'Alfabet.',
+    brackets: [
+      { label: 'Abaixo de 90%',  maxVal: 90 },
+      { label: '90% – 93%',      maxVal: 93 },
+      { label: '93% – 96%',      maxVal: 96 },
+      { label: '96% – 98%',      maxVal: 98 },
+      { label: '98% ou mais',    maxVal: Infinity },
+    ],
+    colors: ['#EDF8E9', '#BAE4B3', '#74C476', '#31A354', '#006D2C'],
+    noDataColor: '#D1D5DB',
+    getValue: (p) => {
+      // Alfabetizados 15+ (V00748..V00760)
+      const alfa15Cols = [
+        'V00748','V00749','V00750','V00751','V00752','V00753',
+        'V00754','V00755','V00756','V00757','V00758','V00759','V00760',
+      ] as const
+      // Populacao 15+ (masc V01012-V01019 + fem V01023-V01030)
+      const pop15Cols = [
+        'V01012','V01013','V01014','V01015','V01016','V01017','V01018','V01019',
+        'V01023','V01024','V01025','V01026','V01027','V01028','V01029','V01030',
+      ] as const
+      const alfa = (alfa15Cols as readonly string[]).reduce((s, c) => s + ((p[c as keyof SectorProperties] as number | null) ?? 0), 0)
+      const pop = (pop15Cols as readonly string[]).reduce((s, c) => s + ((p[c as keyof SectorProperties] as number | null) ?? 0), 0)
+      return pop > 0 ? (alfa / pop) * 100 : null
+    },
+  },
+  cor_raca: {
+    key: 'cor_raca',
+    title: '% Preta + Parda + Indígena',
+    buttonLabel: 'Cor/Raça',
+    brackets: [
+      { label: 'Até 20%',      maxVal: 20  },
+      { label: '20% – 40%',    maxVal: 40  },
+      { label: '40% – 60%',    maxVal: 60  },
+      { label: '60% – 80%',    maxVal: 80  },
+      { label: 'Acima de 80%', maxVal: Infinity },
+    ],
+    colors: ['#EDF8FB', '#B3CDE3', '#8C96C6', '#8856A7', '#810F7C'],
+    noDataColor: '#D1D5DB',
+    getValue: (p) => {
+      const total = p.V01006 ?? 0
+      if (total === 0) return null
+      const nBranca = (p.V01318 ?? 0) + (p.V01320 ?? 0) + (p.V01321 ?? 0)
+      return (nBranca / total) * 100
+    },
+  },
+}
+
+/** Ordem de exibição dos botões na toolbar */
+export const OVERLAY_ORDER: OverlayType[] = ['renda', 'densidade', 'alfabetizacao', 'cor_raca']
+
 export const COLOR_MALE = '#3B82F6'   // blue-500
 export const COLOR_FEMALE = '#EC4899' // pink-500
 
