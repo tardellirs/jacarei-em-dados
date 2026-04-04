@@ -18,6 +18,13 @@ export const MALE_AGE_COLS_15PLUS = [
   'V01012', 'V01013', 'V01014', 'V01015', 'V01016', 'V01017', 'V01018', 'V01019',
 ] as const
 
+// ── Faixas etárias 60+ (V01018=masc 60-69, V01019=masc 70+, V01029=fem 60-69, V01030=fem 70+) ──
+export const MALE_AGE_COLS_60PLUS = ['V01018', 'V01019'] as const
+export const FEMALE_AGE_COLS_60PLUS = ['V01029', 'V01030'] as const
+
+// ── Alfabetização 60+ (V00757=60-64, V00758=65-69, V00759=70-79, V00760=80+) ──
+export const ALFABETIZACAO_60PLUS_COLS = ['V00757', 'V00758', 'V00759', 'V00760'] as const
+
 export const FEMALE_AGE_COLS_15PLUS = [
   'V01023', 'V01024', 'V01025', 'V01026', 'V01027', 'V01028', 'V01029', 'V01030',
 ] as const

@@ -126,6 +126,9 @@ export interface CorRacaData {
 export interface AlfabetizacaoData {
   alfabetizadas: number
   naoAlfabetizadas: number
+  // Subgrupo 60+
+  alfabetizadas60plus: number
+  naoAlfabetizadas60plus: number
 }
 
 export interface DomicilioData {
