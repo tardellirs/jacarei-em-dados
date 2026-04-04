@@ -2,15 +2,13 @@ import { useEffect, useRef, useMemo } from 'react'
 import { MapContainer, TileLayer, GeoJSON, useMap } from 'react-leaflet'
 import type { Layer, PathOptions } from 'leaflet'
 import type { Feature } from 'geojson'
-import type { SectorFeature, SelectionMode } from '../types'
+import type { SectorFeature, SelectionMode, OverlayType } from '../types'
 import type { LatLngBounds } from '../hooks/useGeoData'
 import {
   MAP_CENTER,
   MAP_ZOOM,
-  IPCA_AGO2022_FEV2026,
-  RENDA_FAIXAS,
-  RENDA_FAIXA_COLORS,
-  RENDA_SEM_DADOS_COLOR,
+  OVERLAY_CONFIGS,
+  OVERLAY_ORDER,
 } from '../utils/constants'
 import { DrawControl } from './DrawControl'
 import 'leaflet/dist/leaflet.css'
@@ -27,36 +25,35 @@ interface MapProps {
   onClearSelection: () => void
   initialBounds: LatLngBounds | null
   resetZoomSignal?: number
-  showIncomeOverlay: boolean
-  onToggleIncomeOverlay: () => void
+  activeOverlay: OverlayType | null
+  onToggleOverlay: (type: OverlayType) => void
 }
 
-function incomeColor(idx: number): string {
-  return idx >= 0 ? RENDA_FAIXA_COLORS[idx] : RENDA_SEM_DADOS_COLOR
+function overlayColor(idx: number, config: { colors: readonly string[]; noDataColor: string }): string {
+  return idx >= 0 ? config.colors[idx] : config.noDataColor
 }
 
 function styleFeature(
   feature: Feature | undefined,
   selectedCds: Set<string>,
   selectedSectorCd: string | null,
-  showOverlay: boolean,
+  activeOverlay: OverlayType | null,
   bracketMap: Map<string, number>
 ): PathOptions {
   const props = (feature as SectorFeature)?.properties
   const cd = props?.CD_SETOR
   const isSelected = cd ? selectedCds.has(cd) || cd === selectedSectorCd : false
 
-  if (!showOverlay) {
-    // Comportamento original
+  if (!activeOverlay) {
     if (isSelected) {
       return { fillColor: '#1D4ED8', fillOpacity: 0.65, color: '#1E3A8A', weight: 2 }
     }
     return { fillColor: '#1D4ED8', fillOpacity: 0, color: '#1a1a1a', weight: 1.1 }
   }
 
-  // Overlay de renda ativo
+  const config = OVERLAY_CONFIGS[activeOverlay]
   const idx = cd != null ? (bracketMap.get(cd) ?? -1) : -1
-  const fillColor = incomeColor(idx)
+  const fillColor = overlayColor(idx, config)
   const noData = idx === -1
 
   if (isSelected) {
@@ -131,27 +128,29 @@ export function MapView({
   onClearSelection,
   initialBounds,
   resetZoomSignal,
-  showIncomeOverlay,
-  onToggleIncomeOverlay,
+  activeOverlay,
+  onToggleOverlay,
 }: MapProps) {
   const selectedSectorCd = selectedSector?.properties.CD_SETOR ?? null
 
-  // Pré-computa índice de faixa de renda por setor (O(n) uma vez por mudança de features)
-  const incomeBracketMap = useMemo(() => {
+  // Pré-computa índice de faixa por setor para o overlay ativo
+  const bracketMap = useMemo(() => {
     const map = new Map<string, number>()
+    if (!activeOverlay) return map
+
+    const config = OVERLAY_CONFIGS[activeOverlay]
     for (const f of features) {
       const cd = f.properties.CD_SETOR
-      const v = f.properties.V06004
-      if (v == null || v === 0) {
+      const val = config.getValue(f.properties)
+      if (val == null) {
         map.set(cd, -1)
         continue
       }
-      const corrected = v * IPCA_AGO2022_FEV2026
-      const idx = RENDA_FAIXAS.findIndex((faixa) => corrected < faixa.maxVal)
-      map.set(cd, idx >= 0 ? idx : RENDA_FAIXAS.length - 1)
+      const idx = config.brackets.findIndex((b) => val < b.maxVal)
+      map.set(cd, idx >= 0 ? idx : config.brackets.length - 1)
     }
     return map
-  }, [features])
+  }, [features, activeOverlay])
 
   const geoJsonKey = useMemo(
     () => features.map((f) => f.properties.CD_SETOR).join(','),
@@ -161,8 +160,7 @@ export function MapView({
     () => Array.from(selectedCds).sort().join(',') + '|' + (selectedSectorCd ?? ''),
     [selectedCds, selectedSectorCd]
   )
-  // Incluir overlay no renderKey para forçar remount ao alternar
-  const renderKey = `${geoJsonKey}|${selectedKey}|overlay:${showIncomeOverlay}`
+  const renderKey = `${geoJsonKey}|${selectedKey}|overlay:${activeOverlay ?? 'none'}`
 
   function onEachFeature(feature: Feature, layer: Layer) {
     const props = (feature as SectorFeature).properties
@@ -173,9 +171,10 @@ export function MapView({
       mouseover(e) {
         const l = e.target
         if (!isSelected) {
-          if (showIncomeOverlay) {
-            const idx = incomeBracketMap.get(cd) ?? -1
-            l.setStyle({ fillColor: incomeColor(idx), fillOpacity: 0.75, weight: 1.5, color: '#1a1a1a' })
+          if (activeOverlay) {
+            const config = OVERLAY_CONFIGS[activeOverlay]
+            const idx = bracketMap.get(cd) ?? -1
+            l.setStyle({ fillColor: overlayColor(idx, config), fillOpacity: 0.75, weight: 1.5, color: '#1a1a1a' })
           } else {
             l.setStyle({ fillColor: '#3B82F6', fillOpacity: 0.40, weight: 1.2, color: '#1a1a1a' })
           }
@@ -184,7 +183,7 @@ export function MapView({
       mouseout(e) {
         const l = e.target
         if (!isSelected) {
-          l.setStyle(styleFeature(feature, selectedCds, selectedSectorCd, showIncomeOverlay, incomeBracketMap))
+          l.setStyle(styleFeature(feature, selectedCds, selectedSectorCd, activeOverlay, bracketMap))
         }
       },
       click() {
@@ -193,10 +192,11 @@ export function MapView({
         } else if (selectionMode === 'none') {
           onSectorClick(feature as SectorFeature)
         }
-        // drawing mode: clicks handled by DrawControl
       },
     })
   }
+
+  const activeConfig = activeOverlay ? OVERLAY_CONFIGS[activeOverlay] : null
 
   return (
     <div className="relative w-full h-full">
@@ -214,7 +214,7 @@ export function MapView({
         <GeoJSON
           key={renderKey}
           data={{ type: 'FeatureCollection', features } as GeoJSON.FeatureCollection}
-          style={(f) => styleFeature(f, selectedCds, selectedSectorCd, showIncomeOverlay, incomeBracketMap)}
+          style={(f) => styleFeature(f, selectedCds, selectedSectorCd, activeOverlay, bracketMap)}
           onEachFeature={onEachFeature}
         />
         <FitBounds
@@ -229,100 +229,116 @@ export function MapView({
         />
       </MapContainer>
 
-      {/* Legenda do overlay de renda */}
-      {showIncomeOverlay && (
-        <div className="absolute bottom-20 left-3 z-[1000] bg-white/90 backdrop-blur-sm border border-slate-200 rounded-lg shadow-md px-3 py-2.5">
-          <p className="text-[11px] font-semibold text-slate-700 mb-1.5">Renda média (SM 2026)</p>
-          {RENDA_FAIXAS.map((faixa, i) => (
+      {/* Legenda do overlay ativo */}
+      {activeConfig && (
+        <div className="absolute bottom-6 left-3 z-[1000] bg-white/90 backdrop-blur-sm border border-slate-200 rounded-lg shadow-md px-3 py-2.5">
+          <p className="text-[11px] font-semibold text-slate-700 mb-1.5">{activeConfig.title}</p>
+          {activeConfig.brackets.map((bracket, i) => (
             <div key={i} className="flex items-center gap-2 mb-1">
               <span
                 className="w-4 h-3 rounded-sm shrink-0 border border-black/10"
-                style={{ backgroundColor: RENDA_FAIXA_COLORS[i] }}
+                style={{ backgroundColor: activeConfig.colors[i] }}
               />
-              <span className="text-[11px] text-slate-600">{faixa.label}</span>
+              <span className="text-[11px] text-slate-600">{bracket.label}</span>
             </div>
           ))}
           <div className="flex items-center gap-2 mt-1 pt-1 border-t border-slate-200">
             <span
               className="w-4 h-3 rounded-sm shrink-0 border border-black/10"
-              style={{ backgroundColor: RENDA_SEM_DADOS_COLOR }}
+              style={{ backgroundColor: activeConfig.noDataColor }}
             />
             <span className="text-[11px] text-slate-400">Sem dados</span>
           </div>
         </div>
       )}
 
-      {/* Toolbar flutuante */}
-      <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-[1000] flex gap-2">
-        {/* Botão overlay de renda — sempre visível */}
-        <button
-          onClick={onToggleIncomeOverlay}
-          title="Colorir mapa por renda do responsável"
-          className={[
-            'flex items-center gap-1.5 px-3 py-2 border rounded-lg shadow-md text-sm font-medium transition-colors',
-            showIncomeOverlay
-              ? 'bg-amber-100 border-amber-400 text-amber-800 hover:bg-amber-200'
-              : 'bg-white border-slate-300 text-slate-700 hover:bg-slate-50 hover:border-slate-400',
-          ].join(' ')}
-        >
-          <svg viewBox="0 0 20 20" className="w-4 h-4 fill-current">
-            <rect x="2"  y="2"  width="7" height="7" rx="1" opacity="0.30" />
-            <rect x="11" y="2"  width="7" height="7" rx="1" opacity="0.55" />
-            <rect x="2"  y="11" width="7" height="7" rx="1" opacity="0.75" />
-            <rect x="11" y="11" width="7" height="7" rx="1" opacity="1.00" />
-          </svg>
-          Renda
-        </button>
+      {/* Toolbar top-left — abaixo do zoom +/- */}
+      <div className="absolute top-[92px] left-2.5 z-[1000] flex flex-col gap-1">
+        {/* Botões de overlay */}
+        {OVERLAY_ORDER.map((type) => {
+          const config = OVERLAY_CONFIGS[type]
+          const isActive = activeOverlay === type
+          return (
+            <button
+              key={type}
+              onClick={() => onToggleOverlay(type)}
+              title={config.title}
+              className={[
+                'flex items-center gap-1.5 px-2 py-1.5 border rounded-lg shadow-sm text-xs font-medium transition-colors whitespace-nowrap',
+                isActive
+                  ? 'bg-amber-100 border-amber-400 text-amber-800 hover:bg-amber-200'
+                  : 'bg-white border-slate-300 text-slate-700 hover:bg-slate-50',
+              ].join(' ')}
+            >
+              <svg viewBox="0 0 20 20" className="w-3.5 h-3.5 fill-current shrink-0">
+                <rect x="2"  y="2"  width="7" height="7" rx="1" opacity="0.30" />
+                <rect x="11" y="2"  width="7" height="7" rx="1" opacity="0.55" />
+                <rect x="2"  y="11" width="7" height="7" rx="1" opacity="0.75" />
+                <rect x="11" y="11" width="7" height="7" rx="1" opacity="1.00" />
+              </svg>
+              {config.buttonLabel}
+            </button>
+          )
+        })}
 
+        {/* Separador */}
+        <div className="border-t border-slate-300 mx-1 my-0.5" />
+
+        {/* Botão polígono — visível apenas no modo 'none' */}
         {selectionMode === 'none' && (
           <button
             onClick={onStartDrawing}
             title="Desenhar polígono para selecionar setores"
-            className="flex items-center gap-1.5 px-3 py-2 bg-white border border-slate-300 rounded-lg shadow-md text-sm font-medium text-slate-700 hover:bg-slate-50 hover:border-slate-400 transition-colors"
+            className="flex items-center gap-1.5 px-2 py-1.5 bg-white border border-slate-300 rounded-lg shadow-sm text-xs font-medium text-slate-700 hover:bg-slate-50 transition-colors whitespace-nowrap"
           >
-            <svg viewBox="0 0 24 24" className="w-4 h-4 fill-none stroke-current stroke-2">
+            <svg viewBox="0 0 24 24" className="w-3.5 h-3.5 fill-none stroke-current stroke-2 shrink-0">
               <polygon points="12,3 20,8 20,16 12,21 4,16 4,8" />
             </svg>
-            Selecionar por polígono
+            Polígono
           </button>
         )}
-
-        {selectionMode === 'drawing' && (
-          <div className="flex items-center gap-2 px-3 py-2 bg-amber-50 border border-amber-300 rounded-lg shadow-md text-sm text-amber-800">
-            <svg viewBox="0 0 24 24" className="w-4 h-4 fill-none stroke-current stroke-2 shrink-0">
-              <circle cx="12" cy="12" r="9" />
-              <line x1="12" y1="8" x2="12" y2="12" />
-              <line x1="12" y1="16" x2="12.01" y2="16" />
-            </svg>
-            <span>Clique para adicionar vértices · Duplo clique ou clique no 1º vértice para fechar</span>
-            <button
-              onClick={onClearSelection}
-              className="ml-1 text-amber-700 hover:text-amber-900 font-medium underline shrink-0"
-            >
-              Cancelar
-            </button>
-          </div>
-        )}
-
-        {selectionMode === 'selected' && (
-          <div className="flex items-center gap-2 px-3 py-2 bg-blue-50 border border-blue-300 rounded-lg shadow-md text-sm text-blue-800">
-            <svg viewBox="0 0 24 24" className="w-4 h-4 fill-none stroke-current stroke-2 shrink-0">
-              <polyline points="20,6 9,17 4,12" />
-            </svg>
-            <span>{selectedCds.size} setor{selectedCds.size !== 1 ? 'es' : ''} selecionado{selectedCds.size !== 1 ? 's' : ''} · Clique para adicionar/remover</span>
-            <button
-              onClick={onClearSelection}
-              title="Limpar seleção"
-              className="ml-1 shrink-0 text-blue-600 hover:text-blue-900"
-            >
-              <svg viewBox="0 0 24 24" className="w-4 h-4 fill-none stroke-current stroke-2">
-                <line x1="18" y1="6" x2="6" y2="18" />
-                <line x1="6" y1="6" x2="18" y2="18" />
-              </svg>
-            </button>
-          </div>
-        )}
       </div>
+
+      {/* Status bars bottom-center — instruções de desenho / seleção */}
+      {(selectionMode === 'drawing' || selectionMode === 'selected') && (
+        <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-[1000]">
+          {selectionMode === 'drawing' && (
+            <div className="flex items-center gap-2 px-3 py-2 bg-amber-50 border border-amber-300 rounded-lg shadow-md text-sm text-amber-800">
+              <svg viewBox="0 0 24 24" className="w-4 h-4 fill-none stroke-current stroke-2 shrink-0">
+                <circle cx="12" cy="12" r="9" />
+                <line x1="12" y1="8" x2="12" y2="12" />
+                <line x1="12" y1="16" x2="12.01" y2="16" />
+              </svg>
+              <span>Clique para adicionar vértices · Duplo clique ou clique no 1º vértice para fechar</span>
+              <button
+                onClick={onClearSelection}
+                className="ml-1 text-amber-700 hover:text-amber-900 font-medium underline shrink-0"
+              >
+                Cancelar
+              </button>
+            </div>
+          )}
+
+          {selectionMode === 'selected' && (
+            <div className="flex items-center gap-2 px-3 py-2 bg-blue-50 border border-blue-300 rounded-lg shadow-md text-sm text-blue-800">
+              <svg viewBox="0 0 24 24" className="w-4 h-4 fill-none stroke-current stroke-2 shrink-0">
+                <polyline points="20,6 9,17 4,12" />
+              </svg>
+              <span>{selectedCds.size} setor{selectedCds.size !== 1 ? 'es' : ''} selecionado{selectedCds.size !== 1 ? 's' : ''} · Clique para adicionar/remover</span>
+              <button
+                onClick={onClearSelection}
+                title="Limpar seleção"
+                className="ml-1 shrink-0 text-blue-600 hover:text-blue-900"
+              >
+                <svg viewBox="0 0 24 24" className="w-4 h-4 fill-none stroke-current stroke-2">
+                  <line x1="18" y1="6" x2="6" y2="18" />
+                  <line x1="6" y1="6" x2="18" y2="18" />
+                </svg>
+              </button>
+            </div>
+          )}
+        </div>
+      )}
     </div>
   )
 }
