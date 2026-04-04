@@ -56,6 +56,10 @@ export function PieChart({ data, title, height = 200, innerRadius = 0 }: PieChar
             dataKey="value"
             labelLine={false}
             label={renderCustomLabel}
+            isAnimationActive={true}
+            animationBegin={0}
+            animationDuration={400}
+            animationEasing="ease-out"
           >
             {data.map((entry, i) => (
               <Cell key={i} fill={entry.color} />

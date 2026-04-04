@@ -22,7 +22,7 @@ export function AlfabetizacaoView({ data }: AlfabetizacaoViewProps) {
           Taxa de alfabetização: <span className="font-bold text-[#1D4ED8]">{taxa}%</span>
         </p>
       )}
-      <PieChart data={slices} height={200} />
+      <PieChart data={slices} height={300} />
     </div>
   )
 }

@@ -26,8 +26,8 @@ export function ParentescoView({ data }: ParentescoViewProps) {
         Responsável pelo Domicílio
       </h3>
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-        <PieChart data={sexoSlices} title="Por sexo" height={200} />
-        <PieChart data={idadeSlices} title="Por faixa etária" height={200} />
+        <PieChart data={sexoSlices} title="Por sexo" height={300} />
+        <PieChart data={idadeSlices} title="Por faixa etária" height={300} />
       </div>
     </div>
   )
