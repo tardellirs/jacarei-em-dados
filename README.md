@@ -17,7 +17,7 @@ Navegue pelo mapa, aplique filtros por distrito e tipo de ocupação, selecione 
 ## Funcionalidades
 
 - **Mapa interativo** — 548 setores censitários de Jacareí renderizados via react-leaflet; hover com highlight e zoom automático por filtro
-- **Overlay coroplético de renda** — botão "Renda" na toolbar do mapa colore os setores pela renda média corrigida pelo IPCA, em escala YlOrRd-5 por faixas de salário mínimo; legenda integrada
+- **4 overlays coropléticos no mapa** — toolbar vertical junto ao zoom oferece: Renda (YlOrRd, faixas de SM), Densidade populacional (Blues, hab/km²), Taxa de Alfabetização 15+ (Greens, %), Cor/Raça — % preta+parda+indígena (BuPu, %); apenas um ativo por vez; legenda integrada
 - **7 categorias no painel** — Demografia, Cor/Raça, Alfabetização, Domicílio, Parentesco, Indígenas/Quilombolas e Renda, navegadas por abas
 - **Filtros combinados** — filtre por Distrito, Urbana/Rural e Favelas/Comunidades simultaneamente (lógica AND)
 - **Seleção individual** — clique em qualquer setor para ver seus dados isolados no painel
@@ -103,7 +103,7 @@ npm run build
 5. **Editar seleção** — com o polígono fechado, clique em qualquer setor para adicioná-lo ou removê-lo da seleção.
 6. **Limpar** — clique no X da barra de seleção ou em *Limpar seleções* para voltar ao estado inicial.
 7. **Mapa PDF** — quando um setor individual está selecionado, o botão *Mapa PDF* abre o mapa oficial do setor no portal do IBGE.
-8. **Overlay de renda** — clique em *Renda* na barra flutuante do mapa para colorir os setores por faixa de renda (amarelo → vermelho). A legenda aparece no canto inferior-esquerdo. Clique novamente para desativar.
+8. **Overlays no mapa** — a toolbar vertical no canto superior-esquerdo (abaixo do zoom) oferece 4 camadas de cores: *Renda*, *Densidade*, *Alfabet.* e *Cor/Raça*. Clique em um para ativar; clique novamente para desativar. Apenas um overlay por vez. A legenda aparece no canto inferior-esquerdo.
 
 ---
 
