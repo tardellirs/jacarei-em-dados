@@ -1,11 +1,21 @@
-import type { SectorFeature, DashboardData, SectorProperties } from '../types'
-import { MALE_AGE_COLS, FEMALE_AGE_COLS } from './constants'
+import type { SectorFeature, SectorProperties } from '../../types'
+import { MALE_AGE_COLS, FEMALE_AGE_COLS } from '../constants'
+import { safeNum } from './helpers'
 
-function safeNum(v: number | null | undefined): number {
-  return (v == null || isNaN(v as number)) ? 0 : (v as number)
+export interface DemographicsData {
+  populacao: number
+  domicilios: number
+  area: number
+  densidade: number
+  masculino: number
+  feminino: number
+  masculinoPorFaixa: number[]
+  femininoPorFaixa: number[]
+  hasData: boolean
+  sectorCount: number
 }
 
-export function aggregateFeatures(features: SectorFeature[]): DashboardData {
+export function aggregateDemographics(features: SectorFeature[]): DemographicsData {
   let populacao = 0
   let domicilios = 0
   let area = 0
@@ -40,34 +50,22 @@ export function aggregateFeatures(features: SectorFeature[]): DashboardData {
   const densidade = area > 0 ? populacao / area : 0
 
   return {
-    populacao,
-    domicilios,
-    area,
-    densidade,
-    masculino,
-    feminino,
-    masculinoPorFaixa,
-    femininoPorFaixa,
-    hasData: hasAnyData,
-    sectorCount,
+    populacao, domicilios, area, densidade,
+    masculino, feminino, masculinoPorFaixa, femininoPorFaixa,
+    hasData: hasAnyData, sectorCount,
   }
 }
 
-export function sectorToDashboard(p: SectorProperties): DashboardData {
+export function sectorDemographics(p: SectorProperties): DemographicsData {
   const hasData = p.V01006 != null
 
   if (!hasData) {
     return {
-      populacao: 0,
-      domicilios: 0,
-      area: safeNum(p.AREA_KM2),
-      densidade: 0,
-      masculino: 0,
-      feminino: 0,
+      populacao: 0, domicilios: 0, area: safeNum(p.AREA_KM2), densidade: 0,
+      masculino: 0, feminino: 0,
       masculinoPorFaixa: new Array(11).fill(0),
       femininoPorFaixa: new Array(11).fill(0),
-      hasData: false,
-      sectorCount: 1,
+      hasData: false, sectorCount: 1,
     }
   }
 
@@ -82,15 +80,10 @@ export function sectorToDashboard(p: SectorProperties): DashboardData {
   const populacao = safeNum(p.V01006)
 
   return {
-    populacao,
-    domicilios: safeNum(p.V0002),
-    area,
+    populacao, domicilios: safeNum(p.V0002), area,
     densidade: area > 0 ? populacao / area : 0,
-    masculino: safeNum(p.V01007),
-    feminino: safeNum(p.V01008),
-    masculinoPorFaixa,
-    femininoPorFaixa,
-    hasData: true,
-    sectorCount: 1,
+    masculino: safeNum(p.V01007), feminino: safeNum(p.V01008),
+    masculinoPorFaixa, femininoPorFaixa,
+    hasData: true, sectorCount: 1,
   }
 }
