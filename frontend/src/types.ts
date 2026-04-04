@@ -159,7 +159,7 @@ export interface IndigenasQuilombolasData {
 
 export interface RendaFaixa {
   label: string
-  count: number   // setores nessa faixa
+  domicilios: number   // domicílios (responsáveis) nessa faixa
 }
 
 export interface RendaData {

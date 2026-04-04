@@ -59,7 +59,7 @@ export function RendaView({ data }: RendaViewProps) {
           {mostrarDistribuicao && (
             <div>
               <p className="text-sm font-semibold text-slate-700 text-center mb-3">
-                Distribuição dos setores por faixa de renda
+                Distribuição de domicílios por faixa de renda
               </p>
               <div className="w-full">
                 <ResponsiveContainer width="100%" height={220}>
@@ -82,8 +82,8 @@ export function RendaView({ data }: RendaViewProps) {
                     />
                     <Tooltip
                       formatter={(value: number) => [
-                        `${value} setor${value !== 1 ? 'es' : ''}`,
-                        'Quantidade',
+                        formatNumber(value) + ` domicílio${value !== 1 ? 's' : ''}`,
+                        'Total',
                       ]}
                       contentStyle={{
                         fontSize: 12,
@@ -91,15 +91,15 @@ export function RendaView({ data }: RendaViewProps) {
                         border: '1px solid #e2e8f0',
                       }}
                     />
-                    <Bar dataKey="count" radius={[4, 4, 0, 0]} animationDuration={400}>
+                    <Bar dataKey="domicilios" radius={[4, 4, 0, 0]} animationDuration={400}>
                       {distribuicaoSetores.map((_, i) => (
                         <Cell key={i} fill={BAR_COLORS[i % BAR_COLORS.length]} />
                       ))}
                       <LabelList
-                        dataKey="count"
+                        dataKey="domicilios"
                         position="top"
                         style={{ fontSize: 11, fill: '#475569', fontWeight: 600 }}
-                        formatter={(v: number) => (v > 0 ? v : '')}
+                        formatter={(v: number) => (v > 0 ? v.toLocaleString('pt-BR') : '')}
                       />
                     </Bar>
                   </BarChart>
