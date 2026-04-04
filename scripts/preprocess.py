@@ -68,6 +68,13 @@ CATEGORIES = {
         "columns": ["V03196", "V03197", "V03198", "V03199", "V03200", "V03201", "V03202"],
         "national": True,
     },
+    "renda": {
+        "file": "Agregados_por_setores_renda_responsavel_BR.csv",
+        "key_col": "CD_SETOR",
+        "columns": ["V06001", "V06004"],  # V06001=total responsáveis, V06004=rendimento médio
+        "national": True,
+        "float_cols": ["V06004"],  # vírgula decimal: "3312,06" → 3312.06
+    },
 }
 
 
@@ -122,6 +129,7 @@ def load_and_filter_csv(
     key_col: str,
     columns: list[str],
     national: bool,
+    **kwargs,
 ) -> pd.DataFrame:
     """
     Lê um CSV censitário, filtra para Jacareí (se nacional),
@@ -140,9 +148,13 @@ def load_and_filter_csv(
         df = df[df["CD_SETOR"].str.startswith(JACAREI_PREFIX)].copy()
 
     # Limpar valores "X" e converter para numérico
+    float_cols = set(kwargs.get("float_cols", []))
     cols_present = [c for c in columns if c in df.columns]
     for col in cols_present:
-        df[col] = clean_column(df[col])
+        if col in float_cols:
+            df[col] = clean_float_column(df[col])
+        else:
+            df[col] = clean_column(df[col])
 
     return df[["CD_SETOR"] + cols_present]
 
@@ -156,6 +168,18 @@ def clean_column(series: pd.Series) -> pd.Series:
         .pipe(pd.to_numeric, errors="coerce")
         .fillna(0)
         .astype(int)
+    )
+
+
+def clean_float_column(series: pd.Series) -> pd.Series:
+    """Substitui 'X' por 0, trata vírgula decimal brasileira e converte para float."""
+    return (
+        series
+        .replace("X", "0")
+        .str.strip()
+        .str.replace(",", ".", regex=False)
+        .pipe(pd.to_numeric, errors="coerce")
+        .fillna(0.0)
     )
 
 
@@ -177,6 +201,7 @@ def merge_category(
         key_col=config["key_col"],
         columns=config["columns"],
         national=config["national"],
+        float_cols=config.get("float_cols", []),
     )
     print(f"    {len(df)} setores com dados.")
 

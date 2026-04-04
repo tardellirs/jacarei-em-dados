@@ -5,6 +5,7 @@ import { aggregateAlfabetizacao, sectorAlfabetizacao } from './alfabetizacao'
 import { aggregateDomicilio, sectorDomicilio } from './domicilio'
 import { aggregateParentesco, sectorParentesco } from './parentesco'
 import { aggregateIndigenasQuilombolas, sectorIndigenasQuilombolas } from './indigenasQuilombolas'
+import { aggregateRenda, sectorRenda } from './renda'
 
 export function aggregateFeatures(features: SectorFeature[]): DashboardData {
   const demo = aggregateDemographics(features)
@@ -15,6 +16,7 @@ export function aggregateFeatures(features: SectorFeature[]): DashboardData {
     domicilio: aggregateDomicilio(features),
     parentesco: aggregateParentesco(features),
     indigenasQuilombolas: aggregateIndigenasQuilombolas(features),
+    renda: aggregateRenda(features),
   }
 }
 
@@ -27,5 +29,6 @@ export function sectorToDashboard(p: SectorProperties): DashboardData {
     domicilio: sectorDomicilio(p),
     parentesco: sectorParentesco(p),
     indigenasQuilombolas: sectorIndigenasQuilombolas(p),
+    renda: sectorRenda(p),
   }
 }

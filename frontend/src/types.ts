@@ -101,6 +101,9 @@ export interface SectorProperties {
   V03200: number | null // Quilombolas 15-29 anos
   V03201: number | null // Quilombolas 30-59 anos
   V03202: number | null // Quilombolas 60+ anos
+  // ── Renda ──
+  V06001: number | null // Total de responsáveis com rendimento declarado
+  V06004: number | null // Rendimento nominal médio mensal do responsável (R$)
 }
 
 export type SectorFeature = Feature<Geometry, SectorProperties>
@@ -114,6 +117,7 @@ export type DashboardCategory =
   | 'domicilio'
   | 'parentesco'
   | 'indigenas_quilombolas'
+  | 'renda'
 
 export interface CorRacaData {
   branca: number
@@ -153,6 +157,11 @@ export interface IndigenasQuilombolasData {
   quilombolas: PopulacaoEspecialData
 }
 
+export interface RendaData {
+  rendaMedia: number          // rendimento médio ponderado (R$); 0 se sem dados
+  totalResponsaveis: number   // total de responsáveis com rendimento declarado
+}
+
 export interface DashboardData {
   populacao: number
   domicilios: number
@@ -170,6 +179,7 @@ export interface DashboardData {
   domicilio: DomicilioData
   parentesco: ParentescoData
   indigenasQuilombolas: IndigenasQuilombolasData
+  renda: RendaData
 }
 
 export type SelectionMode = 'none' | 'drawing' | 'selected'

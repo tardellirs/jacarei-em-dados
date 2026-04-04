@@ -10,6 +10,7 @@ import {
   DomicilioView,
   ParentescoView,
   IndigenasQuilombolasView,
+  RendaView,
 } from './categories'
 import { ibgeSectorPdfUrl, hasSectorPdf } from '../utils/constants'
 
@@ -35,6 +36,8 @@ function renderCategory(category: DashboardCategory, data: DashboardData) {
       return <ParentescoView data={data.parentesco} />
     case 'indigenas_quilombolas':
       return <IndigenasQuilombolasView data={data.indigenasQuilombolas} />
+    case 'renda':
+      return <RendaView data={data.renda} />
   }
 }
 
