@@ -1,0 +1,6 @@
+export { DemografiaView } from './DemografiaView'
+export { CorRacaView } from './CorRacaView'
+export { AlfabetizacaoView } from './AlfabetizacaoView'
+export { DomicilioView } from './DomicilioView'
+export { ParentescoView } from './ParentescoView'
+export { IndigenasQuilombolasView } from './IndigenasQuilombolasView'
