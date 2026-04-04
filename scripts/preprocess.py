@@ -1,6 +1,6 @@
 """
 Pré-processamento dos dados do Censo IBGE 2022 para Jacareí - SP.
-Gera um GeoJSON mesclando a malha espacial (GPKG) com os dados demográficos (CSV).
+Gera um GeoJSON mesclando a malha espacial (GPKG) com múltiplos CSVs censitários.
 """
 
 import os
@@ -10,40 +10,96 @@ import geopandas as gpd
 import topojson
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-GPKG_PATH = os.path.join(BASE_DIR, "dados", "Jacarei_setores_malha.gpkg")
-CSV_PATH = os.path.join(BASE_DIR, "dados", "Jacarei_Agregados_demografia.csv")
+DADOS_DIR = os.path.join(BASE_DIR, "dados")
+GPKG_PATH = os.path.join(DADOS_DIR, "Jacarei_setores_malha.gpkg")
 OUTPUT_PATH = os.path.join(BASE_DIR, "frontend", "public", "jacarei_setores_merged.geojson")
 
-DEMO_COLS = [f"V{str(i).zfill(5)}" for i in range(1006, 1042)]  # V01006..V01041
+# Prefixo dos setores de Jacareí (município 3524402)
+JACAREI_PREFIX = "3524402"
+
+# ── Definição das categorias de dados ────────────────────────────────────────
+# Cada categoria especifica o arquivo CSV, a coluna-chave e as colunas a extrair.
+# CSVs nacionais (BR) são filtrados para Jacareí automaticamente.
+# O CSV local de demografia (Jacarei_Agregados_demografia.csv) já contém apenas Jacareí.
+
+CATEGORIES = {
+    "demografia": {
+        "file": "Jacarei_Agregados_demografia.csv",
+        "key_col": "CD_setor",
+        "columns": [f"V{str(i).zfill(5)}" for i in range(1006, 1042)],
+        "national": False,
+    },
+    "cor_ou_raca": {
+        "file": "Agregados_por_setores_cor_ou_raca_BR.csv",
+        "key_col": "CD_SETOR",
+        "columns": [f"V{str(i).zfill(5)}" for i in range(1317, 1322)],
+        "national": True,
+    },
+    "alfabetizacao": {
+        "file": "Agregados_por_setores_alfabetizacao_BR.csv",
+        "key_col": "CD_setor",
+        "columns": [f"V{str(i).zfill(5)}" for i in range(748, 761)],
+        "national": True,
+    },
+    "domicilio": {
+        "file": "Agregados_por_setores_caracteristicas_domicilio1_BR.csv",
+        "key_col": "CD_setor",
+        "columns": (
+            [f"V{str(i).zfill(5)}" for i in range(17, 27)]    # V00017..V00026 (moradores)
+            + [f"V{str(i).zfill(5)}" for i in range(47, 53)]  # V00047..V00052 (tipo)
+        ),
+        "national": True,
+    },
+    "parentesco": {
+        "file": "Agregados_por_setores_parentesco_BR.csv",
+        "key_col": "CD_SETOR",
+        "columns": [f"V{str(i).zfill(5)}" for i in range(1062, 1069)],
+        "national": True,
+    },
+    "indigenas": {
+        "file": "Agregados_por_setores_pessoas_indigenas_BR.csv",
+        "key_col": "CD_SETOR",
+        "columns": ["V01690", "V01691", "V01692", "V01696", "V01697", "V01698", "V01699"],
+        "national": True,
+    },
+    "quilombolas": {
+        "file": "Agregados_por_setores_pessoas_quilombolas_BR.csv",
+        "key_col": "CD_SETOR",
+        "columns": ["V03196", "V03197", "V03198", "V03199", "V03200", "V03201", "V03202"],
+        "national": True,
+    },
+}
 
 
-def main():
-    print("Lendo malha espacial (GPKG)...")
-    gdf = gpd.read_file(GPKG_PATH)
-    print(f"  {len(gdf)} setores carregados. CRS: {gdf.crs}")
+def load_gpkg(path: str) -> gpd.GeoDataFrame:
+    """Carrega o GPKG, normaliza CD_SETOR e reprojeta para WGS84."""
+    gdf = gpd.read_file(path)
 
     # Normalizar nome da coluna chave para maiúsculas
     gdf.columns = [c.upper() if c.lower() == "cd_setor" else c for c in gdf.columns]
     if "CD_SETOR" not in gdf.columns:
-        # Alguns layers usam nome diferente – tentar encontrar
         candidates = [c for c in gdf.columns if "setor" in c.lower()]
         if candidates:
             gdf = gdf.rename(columns={candidates[0]: "CD_SETOR"})
         else:
-            print("ERRO: Coluna CD_SETOR não encontrada no GPKG.", file=sys.stderr)
-            sys.exit(1)
+            raise ValueError("Coluna CD_SETOR não encontrada no GPKG.")
 
     # Garantir CRS WGS84
     if gdf.crs is None or gdf.crs.to_epsg() != 4326:
-        print("  Reprojetando para EPSG:4326...")
         gdf = gdf.to_crs(epsg=4326)
 
-    # Simplificar geometrias preservando bordas compartilhadas entre setores
-    print("  Simplificando geometrias (topojson)...")
-    topo = topojson.Topology(gdf, toposimplify=0.0003)
-    gdf = topo.to_gdf()
+    return gdf
 
-    # Padronizar colunas de estatísticas do GPKG (minúsculas → maiúsculas)
+
+def simplify_geometries(gdf: gpd.GeoDataFrame) -> gpd.GeoDataFrame:
+    """Simplifica geometrias preservando bordas compartilhadas (topology-aware)."""
+    topo = topojson.Topology(gdf, toposimplify=0.0003)
+    return topo.to_gdf()
+
+
+def normalize_gpkg_columns(gdf: gpd.GeoDataFrame) -> gpd.GeoDataFrame:
+    """Padroniza colunas de estatísticas do GPKG e trata SITUACAO nula."""
+    # Colunas estatísticas para maiúsculas
     rename_map = {}
     for col in gdf.columns:
         if col.upper() in ("V0001", "V0002", "V0003", "V0004", "V0005", "V0006", "V0007"):
@@ -51,49 +107,115 @@ def main():
     if rename_map:
         gdf = gdf.rename(columns=rename_map)
 
-    # Tratar SITUACAO nula (massas d'água – CD_SITUACAO == 9 ou CD_SIT == 9)
-    sit_col = None
+    # Tratar SITUACAO nula (massas d'água)
     for c in ["CD_SITUACAO", "CD_SIT"]:
-        if c in gdf.columns:
-            sit_col = c
+        if c in gdf.columns and "SITUACAO" in gdf.columns:
+            mask_null = gdf["SITUACAO"].isna()
+            gdf.loc[mask_null, "SITUACAO"] = "Massa d'água"
             break
-    if sit_col and "SITUACAO" in gdf.columns:
-        mask_null = gdf["SITUACAO"].isna()
-        gdf.loc[mask_null, "SITUACAO"] = "Massa d'água"
 
-    print("\nLendo dados demográficos (CSV)...")
-    df = pd.read_csv(CSV_PATH, sep=";", dtype=str)
-    print(f"  {len(df)} setores com dados demográficos.")
+    return gdf
 
-    # Padronizar chave
-    df = df.rename(columns={"CD_setor": "CD_SETOR"})
+
+def load_and_filter_csv(
+    filepath: str,
+    key_col: str,
+    columns: list[str],
+    national: bool,
+) -> pd.DataFrame:
+    """
+    Lê um CSV censitário, filtra para Jacareí (se nacional),
+    limpa valores "X" e retorna apenas as colunas necessárias.
+    """
+    # Ler apenas as colunas necessárias + chave
+    usecols = [key_col] + [c for c in columns if c != key_col]
+    df = pd.read_csv(filepath, sep=";", dtype=str, usecols=usecols)
+
+    # Normalizar chave
+    df = df.rename(columns={key_col: "CD_SETOR"})
     df["CD_SETOR"] = df["CD_SETOR"].astype(str).str.strip()
+
+    # Filtrar para Jacareí se for CSV nacional
+    if national:
+        df = df[df["CD_SETOR"].str.startswith(JACAREI_PREFIX)].copy()
+
+    # Limpar valores "X" e converter para numérico
+    cols_present = [c for c in columns if c in df.columns]
+    for col in cols_present:
+        df[col] = clean_column(df[col])
+
+    return df[["CD_SETOR"] + cols_present]
+
+
+def clean_column(series: pd.Series) -> pd.Series:
+    """Substitui 'X' por 0, limpa espaços e converte para int."""
+    return (
+        series
+        .replace("X", "0")
+        .str.strip()
+        .pipe(pd.to_numeric, errors="coerce")
+        .fillna(0)
+        .astype(int)
+    )
+
+
+def merge_category(
+    gdf: gpd.GeoDataFrame,
+    category_name: str,
+    config: dict,
+) -> gpd.GeoDataFrame:
+    """Mescla uma categoria de dados no GeoDataFrame via left join."""
+    filepath = os.path.join(DADOS_DIR, config["file"])
+
+    if not os.path.exists(filepath):
+        print(f"  AVISO: Arquivo não encontrado para '{category_name}': {config['file']}. Ignorando.")
+        return gdf
+
+    print(f"  Mesclando {category_name} ({config['file']})...")
+    df = load_and_filter_csv(
+        filepath=filepath,
+        key_col=config["key_col"],
+        columns=config["columns"],
+        national=config["national"],
+    )
+    print(f"    {len(df)} setores com dados.")
+
+    gdf = gdf.merge(df, on="CD_SETOR", how="left")
+    return gdf
+
+
+def main():
+    print("Lendo malha espacial (GPKG)...")
+    gdf = load_gpkg(GPKG_PATH)
+    print(f"  {len(gdf)} setores carregados. CRS: {gdf.crs}")
+
+    print("  Simplificando geometrias (topojson)...")
+    gdf = simplify_geometries(gdf)
+
+    gdf = normalize_gpkg_columns(gdf)
     gdf["CD_SETOR"] = gdf["CD_SETOR"].astype(str).str.strip()
 
-    # Substituir "X" por 0 e converter para int (nullable)
-    demo_cols_present = [c for c in DEMO_COLS if c in df.columns]
-    for col in demo_cols_present:
-        df[col] = df[col].replace("X", "0").str.strip()
-        df[col] = pd.to_numeric(df[col], errors="coerce").fillna(0).astype(int)
+    print("\nMesclando categorias de dados censitários...")
+    for name, config in CATEGORIES.items():
+        gdf = merge_category(gdf, name, config)
 
-    print("\nMesclando malha + dados demográficos...")
-    gdf["CD_SETOR"] = gdf["CD_SETOR"].astype(str)
-    df["CD_SETOR"] = df["CD_SETOR"].astype(str)
-    merged = gdf.merge(df, on="CD_SETOR", how="left")
-    print(f"  {len(merged)} setores no resultado final.")
-    missing = merged["V01006"].isna().sum()
+    # Converter colunas de dados para numérico (preservando NaN nos left joins)
+    all_data_cols = []
+    for config in CATEGORIES.values():
+        all_data_cols.extend(config["columns"])
+    for col in all_data_cols:
+        if col in gdf.columns:
+            gdf[col] = pd.to_numeric(gdf[col], errors="coerce")
+
+    # Estatísticas
+    missing = gdf["V01006"].isna().sum() if "V01006" in gdf.columns else "N/A"
+    print(f"\n  {len(gdf)} setores no resultado final.")
     print(f"  {missing} setores sem dados demográficos (áreas sem população).")
 
-    # Converter colunas demográficas com NaN para int nullable do pandas
-    for col in demo_cols_present:
-        if col in merged.columns:
-            merged[col] = pd.to_numeric(merged[col], errors="coerce")
-
-    # Garantir que a pasta de destino existe
+    # Exportar
     os.makedirs(os.path.dirname(OUTPUT_PATH), exist_ok=True)
-
     print(f"\nExportando GeoJSON para: {OUTPUT_PATH}")
-    merged.to_file(OUTPUT_PATH, driver="GeoJSON")
+    gdf.to_file(OUTPUT_PATH, driver="GeoJSON")
 
     size_kb = os.path.getsize(OUTPUT_PATH) / 1024
     print(f"  Arquivo gerado com {size_kb:.0f} KB.")
