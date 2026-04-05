@@ -8,9 +8,9 @@ interface AgePyramidProps {
 export function AgePyramid({ data }: AgePyramidProps) {
   if (!data.hasData) {
     return (
-      <div className="bg-white rounded-lg border border-slate-200 p-4">
-        <h3 className="text-sm font-semibold text-slate-700 mb-3 text-center">Pirâmide Etária</h3>
-        <p className="text-xs text-slate-400 text-center py-4">Sem dados para este setor</p>
+      <div className="bg-white dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-700 p-4">
+        <h3 className="text-sm font-semibold text-slate-700 dark:text-slate-200 mb-3 text-center">Pirâmide Etária</h3>
+        <p className="text-xs text-slate-400 dark:text-slate-500 text-center py-4">Sem dados para este setor</p>
       </div>
     )
   }
@@ -18,8 +18,8 @@ export function AgePyramid({ data }: AgePyramidProps) {
   const maxVal = Math.max(...data.masculinoPorFaixa, ...data.femininoPorFaixa, 1)
 
   return (
-    <div className="bg-white rounded-lg border border-slate-200 p-4">
-      <h3 className="text-sm font-semibold text-slate-700 mb-3 text-center">Pirâmide Etária</h3>
+    <div className="bg-white dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-700 p-4">
+      <h3 className="text-sm font-semibold text-slate-700 dark:text-slate-200 mb-3 text-center">Pirâmide Etária</h3>
 
       <div className="flex flex-col gap-[3px]">
         {/* Barras de cima para baixo (70+ até 0-4) — ordem reversa para pirâmide clássica */}
@@ -42,7 +42,7 @@ export function AgePyramid({ data }: AgePyramidProps) {
               </div>
 
               {/* Label central */}
-              <div className="w-10 shrink-0 text-center text-[10px] text-slate-500 font-medium leading-none">
+              <div className="w-10 shrink-0 text-center text-[10px] text-slate-500 dark:text-slate-400 font-medium leading-none">
                 {label}
               </div>
 
@@ -63,11 +63,11 @@ export function AgePyramid({ data }: AgePyramidProps) {
       <div className="flex gap-4 justify-center mt-3">
         <div className="flex items-center gap-1.5">
           <div className="w-3 h-3 rounded-sm" style={{ backgroundColor: COLOR_MALE }} />
-          <span className="text-xs text-slate-600">Masculino</span>
+          <span className="text-xs text-slate-600 dark:text-slate-400">Masculino</span>
         </div>
         <div className="flex items-center gap-1.5">
           <div className="w-3 h-3 rounded-sm" style={{ backgroundColor: COLOR_FEMALE }} />
-          <span className="text-xs text-slate-600">Feminino</span>
+          <span className="text-xs text-slate-600 dark:text-slate-400">Feminino</span>
         </div>
       </div>
     </div>

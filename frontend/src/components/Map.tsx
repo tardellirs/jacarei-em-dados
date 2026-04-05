@@ -2,7 +2,7 @@ import { useEffect, useRef, useMemo, useState } from 'react'
 import { MapContainer, TileLayer, GeoJSON, useMap } from 'react-leaflet'
 import type { Layer, PathOptions } from 'leaflet'
 import type { Feature } from 'geojson'
-import type { SectorFeature, SelectionMode, OverlayType } from '../types'
+import type { SectorFeature, SelectionMode, OverlayType, VivarealSectorData } from '../types'
 import type { LatLngBounds } from '../hooks/useGeoData'
 import {
   MAP_CENTER,
@@ -27,6 +27,8 @@ interface MapProps {
   resetZoomSignal?: number
   activeOverlay: OverlayType | null
   onToggleOverlay: (type: OverlayType) => void
+  vivarealSectorData?: VivarealSectorData
+  isDark?: boolean
 }
 
 function overlayColor(idx: number, config: { colors: readonly string[]; noDataColor: string }): string {
@@ -38,17 +40,20 @@ function styleFeature(
   selectedCds: Set<string>,
   selectedSectorCd: string | null,
   activeOverlay: OverlayType | null,
-  bracketMap: Map<string, number>
+  bracketMap: Map<string, number>,
+  isDark = false,
 ): PathOptions {
   const props = (feature as SectorFeature)?.properties
   const cd = props?.CD_SETOR
   const isSelected = cd ? selectedCds.has(cd) || cd === selectedSectorCd : false
+  const borderColor = isDark ? '#94a3b8' : '#1a1a1a'
+  const selectedBorderColor = isDark ? '#bfdbfe' : '#1E3A8A'  // blue-200 vs blue-900
 
   if (!activeOverlay) {
     if (isSelected) {
-      return { fillColor: '#1D4ED8', fillOpacity: 0.65, color: '#1E3A8A', weight: 2 }
+      return { fillColor: '#1D4ED8', fillOpacity: 0.65, color: selectedBorderColor, weight: 2 }
     }
-    return { fillColor: '#1D4ED8', fillOpacity: 0, color: '#1a1a1a', weight: 1.1 }
+    return { fillColor: '#1D4ED8', fillOpacity: 0, color: borderColor, weight: 1.1 }
   }
 
   const config = OVERLAY_CONFIGS[activeOverlay]
@@ -57,9 +62,9 @@ function styleFeature(
   const noData = idx === -1
 
   if (isSelected) {
-    return { fillColor, fillOpacity: noData ? 0.35 : 0.70, color: '#1E3A8A', weight: 3 }
+    return { fillColor, fillOpacity: noData ? 0.35 : 0.70, color: selectedBorderColor, weight: 3 }
   }
-  return { fillColor, fillOpacity: noData ? 0.35 : 0.55, color: '#1a1a1a', weight: 1.1 }
+  return { fillColor, fillOpacity: noData ? 0.35 : 0.55, color: borderColor, weight: 1.1 }
 }
 
 function FitBounds({
@@ -116,6 +121,15 @@ function FitBounds({
   return null
 }
 
+const TILE_LIGHT = {
+  url: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+  attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+}
+const TILE_DARK = {
+  url: 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',
+  attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
+}
+
 export function MapView({
   features,
   selectedSector,
@@ -130,6 +144,8 @@ export function MapView({
   resetZoomSignal,
   activeOverlay,
   onToggleOverlay,
+  vivarealSectorData,
+  isDark = false,
 }: MapProps) {
   const selectedSectorCd = selectedSector?.properties.CD_SETOR ?? null
 
@@ -141,7 +157,7 @@ export function MapView({
     const config = OVERLAY_CONFIGS[activeOverlay]
     for (const f of features) {
       const cd = f.properties.CD_SETOR
-      const val = config.getValue(f.properties)
+      const val = config.getValue(f.properties, vivarealSectorData)
       if (val == null) {
         map.set(cd, -1)
         continue
@@ -150,7 +166,7 @@ export function MapView({
       map.set(cd, idx >= 0 ? idx : config.brackets.length - 1)
     }
     return map
-  }, [features, activeOverlay])
+  }, [features, activeOverlay, vivarealSectorData])
 
   const geoJsonKey = useMemo(
     () => features.map((f) => f.properties.CD_SETOR).join(','),
@@ -160,7 +176,7 @@ export function MapView({
     () => Array.from(selectedCds).sort().join(',') + '|' + (selectedSectorCd ?? ''),
     [selectedCds, selectedSectorCd]
   )
-  const renderKey = `${geoJsonKey}|${selectedKey}|overlay:${activeOverlay ?? 'none'}`
+  const renderKey = `${geoJsonKey}|${selectedKey}|overlay:${activeOverlay ?? 'none'}|dark:${isDark}`
 
   function onEachFeature(feature: Feature, layer: Layer) {
     const props = (feature as SectorFeature).properties
@@ -170,20 +186,21 @@ export function MapView({
     layer.on({
       mouseover(e) {
         const l = e.target
+        const borderColor = isDark ? '#94a3b8' : '#1a1a1a'
         if (!isSelected) {
           if (activeOverlay) {
             const config = OVERLAY_CONFIGS[activeOverlay]
             const idx = bracketMap.get(cd) ?? -1
-            l.setStyle({ fillColor: overlayColor(idx, config), fillOpacity: 0.75, weight: 1.5, color: '#1a1a1a' })
+            l.setStyle({ fillColor: overlayColor(idx, config), fillOpacity: 0.75, weight: 1.5, color: borderColor })
           } else {
-            l.setStyle({ fillColor: '#3B82F6', fillOpacity: 0.40, weight: 1.2, color: '#1a1a1a' })
+            l.setStyle({ fillColor: '#3B82F6', fillOpacity: 0.40, weight: 1.2, color: borderColor })
           }
         }
       },
       mouseout(e) {
         const l = e.target
         if (!isSelected) {
-          l.setStyle(styleFeature(feature, selectedCds, selectedSectorCd, activeOverlay, bracketMap))
+          l.setStyle(styleFeature(feature, selectedCds, selectedSectorCd, activeOverlay, bracketMap, isDark))
         }
       },
       click() {
@@ -229,13 +246,14 @@ export function MapView({
         zoomControl={true}
       >
         <TileLayer
-          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-          url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+          key={isDark ? 'dark' : 'light'}
+          attribution={isDark ? TILE_DARK.attribution : TILE_LIGHT.attribution}
+          url={isDark ? TILE_DARK.url : TILE_LIGHT.url}
         />
         <GeoJSON
           key={renderKey}
           data={{ type: 'FeatureCollection', features } as GeoJSON.FeatureCollection}
-          style={(f) => styleFeature(f, selectedCds, selectedSectorCd, activeOverlay, bracketMap)}
+          style={(f) => styleFeature(f, selectedCds, selectedSectorCd, activeOverlay, bracketMap, isDark)}
           onEachFeature={onEachFeature}
         />
         <FitBounds
@@ -252,23 +270,23 @@ export function MapView({
 
       {/* Legenda do overlay ativo — bottom-left */}
       {activeConfig && (
-        <div className="absolute bottom-6 left-3 z-[1000] bg-white/90 backdrop-blur-sm border border-slate-200 rounded-lg shadow-md px-3 py-2.5">
-          <p className="text-[11px] font-semibold text-slate-700 mb-1.5">{activeConfig.title}</p>
+        <div className="absolute bottom-6 left-3 z-[1000] bg-white/90 dark:bg-slate-900/90 backdrop-blur-sm border border-slate-200 dark:border-slate-700 rounded-lg shadow-md px-3 py-2.5">
+          <p className="text-[11px] font-semibold text-slate-700 dark:text-slate-200 mb-1.5">{activeConfig.title}</p>
           {activeConfig.brackets.map((bracket, i) => (
             <div key={i} className="flex items-center gap-2 mb-1">
               <span
-                className="w-4 h-3 rounded-sm shrink-0 border border-black/10"
+                className="w-4 h-3 rounded-sm shrink-0 border border-black/10 dark:border-white/10"
                 style={{ backgroundColor: activeConfig.colors[i] }}
               />
-              <span className="text-[11px] text-slate-600">{bracket.label}</span>
+              <span className="text-[11px] text-slate-600 dark:text-slate-300">{bracket.label}</span>
             </div>
           ))}
-          <div className="flex items-center gap-2 mt-1 pt-1 border-t border-slate-200">
+          <div className="flex items-center gap-2 mt-1 pt-1 border-t border-slate-200 dark:border-slate-700">
             <span
-              className="w-4 h-3 rounded-sm shrink-0 border border-black/10"
+              className="w-4 h-3 rounded-sm shrink-0 border border-black/10 dark:border-white/10"
               style={{ backgroundColor: activeConfig.noDataColor }}
             />
-            <span className="text-[11px] text-slate-400">Sem dados</span>
+            <span className="text-[11px] text-slate-400 dark:text-slate-500">Sem dados</span>
           </div>
         </div>
       )}
@@ -286,8 +304,8 @@ export function MapView({
               activeOverlay
                 ? 'bg-amber-100 border-amber-400 text-amber-800 hover:bg-amber-200'
                 : panelOpen
-                ? 'bg-slate-100 border-slate-400 text-slate-700'
-                : 'bg-white border-slate-300 text-slate-700 hover:bg-slate-50',
+                ? 'bg-slate-100 dark:bg-slate-700 border-slate-400 dark:border-slate-500 text-slate-700 dark:text-slate-200'
+                : 'bg-white dark:bg-slate-800 border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700',
             ].join(' ')}
           >
             {/* Ícone de camadas empilhadas */}
@@ -305,9 +323,9 @@ export function MapView({
 
           {/* Painel de seleção — abre à direita */}
           {panelOpen && (
-            <div className="absolute left-full ml-2 top-0 w-52 bg-white rounded-lg shadow-xl border border-slate-200 overflow-hidden">
-              <div className="px-3 py-2 bg-slate-50 border-b border-slate-200">
-                <p className="text-[11px] font-semibold text-slate-500 uppercase tracking-wide">Camadas do mapa</p>
+            <div className="absolute left-full ml-2 top-0 w-52 bg-white dark:bg-slate-800 rounded-lg shadow-xl border border-slate-200 dark:border-slate-700 overflow-hidden">
+              <div className="px-3 py-2 bg-slate-50 dark:bg-slate-900 border-b border-slate-200 dark:border-slate-700">
+                <p className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide">Camadas do mapa</p>
               </div>
 
               {OVERLAY_ORDER.map((type) => {
@@ -321,7 +339,7 @@ export function MapView({
                       'w-full flex items-center gap-2.5 px-3 py-2.5 text-xs text-left transition-colors',
                       isActive
                         ? 'bg-amber-50 text-amber-800 hover:bg-amber-100'
-                        : 'text-slate-700 hover:bg-slate-50',
+                        : 'text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700',
                     ].join(' ')}
                   >
                     {/* Swatch com cor representativa do meio da escala */}
@@ -342,10 +360,10 @@ export function MapView({
               {/* Remover camada ativa */}
               {activeOverlay && (
                 <>
-                  <div className="border-t border-slate-100 mx-3" />
+                  <div className="border-t border-slate-100 dark:border-slate-700 mx-3" />
                   <button
                     onClick={() => handleOverlaySelect(activeOverlay)}
-                    className="w-full flex items-center gap-2 px-3 py-2 text-xs text-slate-400 hover:text-red-600 hover:bg-red-50 transition-colors"
+                    className="w-full flex items-center gap-2 px-3 py-2 text-xs text-slate-400 dark:text-slate-500 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
                   >
                     <svg viewBox="0 0 16 16" className="w-3.5 h-3.5 shrink-0 fill-none stroke-current stroke-2">
                       <circle cx="8" cy="8" r="6" />
@@ -360,14 +378,14 @@ export function MapView({
         </div>
 
         {/* Separador */}
-        <div className="border-t border-slate-300 mx-1 my-0.5" />
+        <div className="border-t border-slate-300 dark:border-slate-600 mx-1 my-0.5" />
 
         {/* Botão polígono — visível apenas no modo 'none' */}
         {selectionMode === 'none' && (
           <button
             onClick={onStartDrawing}
             title="Desenhar polígono para selecionar setores"
-            className="flex items-center gap-1.5 px-2 py-1.5 bg-white border border-slate-300 rounded-lg shadow-sm text-xs font-medium text-slate-700 hover:bg-slate-50 transition-colors whitespace-nowrap"
+            className="flex items-center gap-1.5 px-2 py-1.5 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded-lg shadow-sm text-xs font-medium text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors whitespace-nowrap"
           >
             <svg viewBox="0 0 24 24" className="w-3.5 h-3.5 fill-none stroke-current stroke-2 shrink-0">
               <polygon points="12,3 20,8 20,16 12,21 4,16 4,8" />

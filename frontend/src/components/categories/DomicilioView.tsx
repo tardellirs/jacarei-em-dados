@@ -27,8 +27,8 @@ export function DomicilioView({ data }: DomicilioViewProps) {
   }))
 
   return (
-    <div className="bg-white rounded-lg border border-slate-200 p-4">
-      <h3 className="text-base font-semibold text-slate-700 mb-3">Domicílios</h3>
+    <div className="bg-white dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-700 p-4">
+      <h3 className="text-base font-semibold text-slate-700 dark:text-slate-200 mb-3">Domicílios</h3>
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <PieChart data={moradoresSlices} title="Por quantidade de moradores" height={360} />
         <PieChart data={tipoSlices} title="Por tipo de domicílio" height={360} />

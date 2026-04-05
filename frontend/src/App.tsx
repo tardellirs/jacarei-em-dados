@@ -1,6 +1,7 @@
 import { useMemo, useState, useCallback } from 'react'
 import type { OverlayType } from './types'
 import { Header } from './components/Header'
+import { useTheme } from './hooks/useTheme'
 import { FilterBar } from './components/FilterBar'
 import { MapView } from './components/Map'
 import { Dashboard } from './components/Dashboard'
@@ -8,10 +9,13 @@ import { useGeoData } from './hooks/useGeoData'
 import { useFilters } from './hooks/useFilters'
 import { useDashboard } from './hooks/useDashboard'
 import { useSelection } from './hooks/useSelection'
+import { useVivarealData } from './hooks/useVivarealData'
 import { findSectorsInPolygon } from './utils/polygonSelection'
 
 export function App() {
+  const { isDark, toggle: toggleTheme } = useTheme()
   const { features, filterOptions, initialBounds, loading, error } = useGeoData()
+  const { sectorData: vivarealSectorData, marketData: vivarealMarketData } = useVivarealData()
   const { filters, selectedSector, setFilter, setSelectedSector, clearAll, applyFilters } = useFilters()
   const [resetZoomSignal, setResetZoomSignal] = useState(0)
   const [activeOverlay, setActiveOverlay] = useState<OverlayType | null>(null)
@@ -68,14 +72,17 @@ export function App() {
     startDrawing()
   }, [setSelectedSector, startDrawing])
 
-  const dashboardData = useDashboard(visibleFeatures, selectedFeatures, selectedSector)
+  const dashboardData = useDashboard(
+    visibleFeatures, selectedFeatures, selectedSector,
+    vivarealSectorData, vivarealMarketData
+  )
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-screen bg-slate-50">
+      <div className="flex items-center justify-center h-screen bg-slate-50 dark:bg-slate-950">
         <div className="flex flex-col items-center gap-3">
           <div className="w-10 h-10 border-4 border-blue-500 border-t-transparent rounded-full animate-spin" />
-          <p className="text-sm text-slate-600">Carregando dados do Censo 2022…</p>
+          <p className="text-sm text-slate-600 dark:text-slate-400">Carregando dados do Censo 2022…</p>
         </div>
       </div>
     )
@@ -83,18 +90,18 @@ export function App() {
 
   if (error) {
     return (
-      <div className="flex items-center justify-center h-screen bg-slate-50">
-        <div className="text-center p-8 bg-white rounded-lg border border-red-200 shadow">
-          <p className="text-red-600 font-medium">Erro ao carregar dados</p>
-          <p className="text-sm text-slate-500 mt-1">{error}</p>
+      <div className="flex items-center justify-center h-screen bg-slate-50 dark:bg-slate-950">
+        <div className="text-center p-8 bg-white dark:bg-slate-900 rounded-lg border border-red-200 dark:border-red-800 shadow">
+          <p className="text-red-600 dark:text-red-400 font-medium">Erro ao carregar dados</p>
+          <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">{error}</p>
         </div>
       </div>
     )
   }
 
   return (
-    <div className="flex flex-col h-screen overflow-hidden bg-slate-100">
-      <Header />
+    <div className="flex flex-col h-screen overflow-hidden bg-slate-100 dark:bg-slate-950">
+      <Header isDark={isDark} onToggleTheme={toggleTheme} />
       <FilterBar
         filters={filters}
         options={filterOptions}
@@ -120,17 +127,20 @@ export function App() {
             resetZoomSignal={resetZoomSignal}
             activeOverlay={activeOverlay}
             onToggleOverlay={toggleOverlay}
+            vivarealSectorData={vivarealSectorData}
+            isDark={isDark}
           />
         </div>
 
         {/* Dashboard */}
-        <div className="flex-[45] min-h-0 lg:h-full h-[50vh] border-l border-slate-200">
+        <div className="flex-[45] min-h-0 lg:h-full h-[50vh] border-l border-slate-200 dark:border-slate-700">
           <Dashboard
             data={dashboardData}
             selectedSector={selectedSector}
             selectedFeatures={selectedFeatures}
             visibleCount={visibleFeatures.length}
             totalCount={features.length}
+            vivarealMarketData={vivarealMarketData}
           />
         </div>
       </div>

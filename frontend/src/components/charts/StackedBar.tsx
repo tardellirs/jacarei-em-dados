@@ -10,8 +10,8 @@ export function StackedBar({ data, title }: StackedBarProps) {
   if (total === 0) {
     return (
       <div className="flex flex-col gap-1">
-        {title && <p className="text-xs font-semibold text-slate-600">{title}</p>}
-        <div className="h-6 bg-slate-100 rounded text-xs text-slate-400 flex items-center justify-center">
+        {title && <p className="text-xs font-semibold text-slate-600 dark:text-slate-400">{title}</p>}
+        <div className="h-6 bg-slate-100 dark:bg-slate-800 rounded text-xs text-slate-400 dark:text-slate-500 flex items-center justify-center">
           Sem dados
         </div>
       </div>
@@ -27,7 +27,7 @@ export function StackedBar({ data, title }: StackedBarProps) {
 
   return (
     <div className="flex flex-col gap-1">
-      {title && <p className="text-xs font-semibold text-slate-600">{title}</p>}
+      {title && <p className="text-xs font-semibold text-slate-600 dark:text-slate-400">{title}</p>}
 
       {/* Barra empilhada */}
       <div className="flex h-6 rounded overflow-hidden">
@@ -52,7 +52,7 @@ export function StackedBar({ data, title }: StackedBarProps) {
       </div>
 
       {/* Eixo */}
-      <div className="flex justify-between text-[10px] text-slate-400">
+      <div className="flex justify-between text-[10px] text-slate-400 dark:text-slate-500">
         <span>0%</span>
         <span>25%</span>
         <span>50%</span>
@@ -65,7 +65,7 @@ export function StackedBar({ data, title }: StackedBarProps) {
         {data.map((d, i) => (
           <div key={i} className="flex items-center gap-1">
             <div className="w-2.5 h-2.5 rounded-sm shrink-0" style={{ backgroundColor: d.color }} />
-            <span className="text-[10px] text-slate-500">{d.label}</span>
+            <span className="text-[10px] text-slate-500 dark:text-slate-400">{d.label}</span>
           </div>
         ))}
       </div>

@@ -110,7 +110,14 @@ export type SectorFeature = Feature<Geometry, SectorProperties>
 
 // ── Categorias do Dashboard ──
 
-export type OverlayType = 'renda' | 'densidade' | 'alfabetizacao' | 'cor_raca'
+export type OverlayType =
+  | 'renda'
+  | 'densidade'
+  | 'alfabetizacao'
+  | 'cor_raca'
+  | 'preco_m2'
+  | 'yield_aluguel'
+  | 'acessibilidade'
 
 export type DashboardCategory =
   | 'demografia'
@@ -120,6 +127,7 @@ export type DashboardCategory =
   | 'parentesco'
   | 'indigenas_quilombolas'
   | 'renda'
+  | 'mercado_imobiliario'
 
 export interface CorRacaData {
   branca: number
@@ -171,6 +179,70 @@ export interface RendaData {
   distribuicaoSetores: RendaFaixa[]  // quantos setores em cada faixa de SM
 }
 
+// ── Mercado Imobiliário (VivaReal) ──
+
+export interface VivarealSectorEntry {
+  cs?: number    // count_sale
+  cr?: number    // count_rental
+  msp?: number   // median_sale_price
+  mrp?: number   // median_rental_price
+  mpm2s?: number // median_price_m2_sale
+  mpm2r?: number // median_price_m2_rental
+  mua?: number   // median_usable_area
+  sb?: number[]  // supply_by_bracket — oferta de venda por faixa (10 elementos)
+}
+
+export type VivarealSectorData = Record<string, VivarealSectorEntry>
+
+export interface MarketBracket {
+  label: string
+  min: number
+  max: number | null   // null = infinito (Super Luxo)
+  max_label: string
+  demand: number
+  supply: number
+  gap: number          // demand - supply
+}
+
+export interface MarketSummary {
+  total_sale: number
+  median_sale_price: number | null
+  total_demand: number
+  total_supply: number
+  total_rental: number
+  median_rental_price: number | null
+  median_rental_pm2: number | null
+  median_sale_pm2: number | null
+}
+
+export interface VivarealMarketData {
+  metadata: {
+    total_sale: number
+    total_rental: number
+    absorption_factor: number
+    income_multiplier: number
+    max_property_factor: number
+    ipca_correction: number
+    generated_at: string
+    residential_types: string[]
+  }
+  brackets: MarketBracket[]
+  summary: MarketSummary
+}
+
+export interface MercadoImobiliarioData {
+  // Métricas do(s) setor(es) selecionado(s)
+  countSale: number
+  countRental: number
+  medianSalePrice: number | null
+  medianRentalPrice: number | null
+  medianPriceM2Sale: number | null
+  medianPriceM2Rental: number | null
+  // Análise de mercado — sempre cidade inteira
+  brackets: MarketBracket[]
+  summary: MarketSummary | null
+}
+
 export interface DashboardData {
   populacao: number
   domicilios: number
@@ -189,6 +261,7 @@ export interface DashboardData {
   parentesco: ParentescoData
   indigenasQuilombolas: IndigenasQuilombolasData
   renda: RendaData
+  mercadoImobiliario: MercadoImobiliarioData
 }
 
 export type SelectionMode = 'none' | 'drawing' | 'selected'

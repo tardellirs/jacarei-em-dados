@@ -36,15 +36,15 @@ export function PieChart({ data, title, height = 200, innerRadius = 0 }: PieChar
   if (total === 0) {
     return (
       <div className="flex flex-col items-center gap-1">
-        {title && <p className="text-xs font-semibold text-slate-600 text-center">{title}</p>}
-        <p className="text-xs text-slate-400 italic">Sem dados disponíveis</p>
+        {title && <p className="text-xs font-semibold text-slate-600 dark:text-slate-400 text-center">{title}</p>}
+        <p className="text-xs text-slate-400 dark:text-slate-500 italic">Sem dados disponíveis</p>
       </div>
     )
   }
 
   return (
     <div className="w-full">
-      {title && <p className="text-sm font-semibold text-slate-700 text-center mb-2">{title}</p>}
+      {title && <p className="text-sm font-semibold text-slate-700 dark:text-slate-200 text-center mb-2">{title}</p>}
       <ResponsiveContainer width="100%" height={height}>
         <RechartsPieChart>
           <Pie
@@ -66,6 +66,13 @@ export function PieChart({ data, title, height = 200, innerRadius = 0 }: PieChar
             ))}
           </Pie>
           <Tooltip
+            contentStyle={{
+              backgroundColor: 'var(--chart-tooltip-bg)',
+              border: '1px solid var(--chart-tooltip-border)',
+              color: 'var(--chart-tooltip-text)',
+              fontSize: 12,
+              borderRadius: 6,
+            }}
             formatter={(value: number, name: string) => [
               `${value.toLocaleString('pt-BR')} (${total > 0 ? ((value / total) * 100).toFixed(1) : 0}%)`,
               name,
@@ -74,7 +81,7 @@ export function PieChart({ data, title, height = 200, innerRadius = 0 }: PieChar
           <Legend
             iconType="square"
             iconSize={10}
-            formatter={(value) => <span style={{ fontSize: 11, color: '#475569' }}>{value}</span>}
+            formatter={(value) => <span style={{ fontSize: 11, color: 'var(--chart-label)' }}>{value}</span>}
           />
         </RechartsPieChart>
       </ResponsiveContainer>

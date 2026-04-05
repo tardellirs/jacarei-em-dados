@@ -70,6 +70,15 @@ const TABS: TabDef[] = [
       </svg>
     ),
   },
+  {
+    key: 'mercado_imobiliario',
+    label: 'Imobiliário',
+    icon: (
+      <svg viewBox="0 0 24 24" className="w-4 h-4 fill-current">
+        <path d="M17 11h-1V7h1v4zm-5 0h-1V7h1v4zm-5 0H6V7h1v4zm13-7H4v2h16V4zm-2 16H6v-6h12v6zM4 14h16V8H4v6zM2 20h20v-2H2v2zM2 4v2h2V4H2zM2 8h2V6H2v2zm0 4h2v-2H2v2zm0 4h2v-2H2v2zm18-4h2v-2h-2v2zm0 4h2v-2h-2v2z"/>
+      </svg>
+    ),
+  },
 ]
 
 interface CategoryTabsProps {
@@ -93,7 +102,7 @@ export function CategoryTabs({ active, onChange }: CategoryTabsProps) {
               'transition-colors shrink-0 border',
               isActive
                 ? 'bg-[#1a3a5c] text-white border-[#1a3a5c]'
-                : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50',
+                : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700',
             ].join(' ')}
           >
             {icon}

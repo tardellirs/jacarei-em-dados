@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import type { DashboardData, SectorFeature, DashboardCategory } from '../types'
+import type { DashboardData, SectorFeature, DashboardCategory, VivarealMarketData } from '../types'
 import { SummaryCards } from './SummaryCards'
 import { NoDataMessage } from './NoDataMessage'
 import { CategoryTabs } from './CategoryTabs'
@@ -11,6 +11,7 @@ import {
   ParentescoView,
   IndigenasQuilombolasView,
   RendaView,
+  MercadoImobiliarioView,
 } from './categories'
 import { ibgeSectorPdfUrl, hasSectorPdf } from '../utils/constants'
 
@@ -20,6 +21,7 @@ interface DashboardProps {
   selectedFeatures: SectorFeature[]      // seleção por polígono (multi)
   visibleCount: number
   totalCount: number
+  vivarealMarketData?: VivarealMarketData | null
 }
 
 function renderCategory(category: DashboardCategory, data: DashboardData) {
@@ -38,10 +40,12 @@ function renderCategory(category: DashboardCategory, data: DashboardData) {
       return <IndigenasQuilombolasView data={data.indigenasQuilombolas} />
     case 'renda':
       return <RendaView data={data.renda} />
+    case 'mercado_imobiliario':
+      return <MercadoImobiliarioView data={data.mercadoImobiliario} />
   }
 }
 
-export function Dashboard({ data, selectedSector, selectedFeatures, visibleCount, totalCount }: DashboardProps) {
+export function Dashboard({ data, selectedSector, selectedFeatures, visibleCount, totalCount, vivarealMarketData: _vivarealMarketData }: DashboardProps) {
   const [activeCategory, setActiveCategory] = useState<DashboardCategory>('demografia')
 
   const polyCount = selectedFeatures.length
@@ -73,13 +77,13 @@ export function Dashboard({ data, selectedSector, selectedFeatures, visibleCount
     : null
 
   return (
-    <div className="flex flex-col h-full bg-slate-50 dashboard-scroll overflow-y-auto">
+    <div className="flex flex-col h-full bg-slate-50 dark:bg-slate-900 dashboard-scroll overflow-y-auto">
       {/* Título da seleção */}
-      <div className="px-4 py-3 bg-white border-b border-slate-200 shrink-0">
+      <div className="px-4 py-3 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-700 shrink-0">
         <div className="flex items-start justify-between gap-2">
           <div className="min-w-0">
-            <h2 className="text-sm font-bold text-slate-800 truncate">{title}</h2>
-            <p className="text-xs text-slate-500 mt-0.5">{subtitle}</p>
+            <h2 className="text-sm font-bold text-slate-800 dark:text-slate-100 truncate">{title}</h2>
+            <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">{subtitle}</p>
           </div>
           {displaySector && (
             pdfUrl ? (
@@ -88,7 +92,7 @@ export function Dashboard({ data, selectedSector, selectedFeatures, visibleCount
                 target="_blank"
                 rel="noopener noreferrer"
                 title="Baixar mapa do setor (IBGE)"
-                className="shrink-0 flex items-center gap-1.5 text-xs font-medium text-white bg-[#1a3a5c] hover:bg-[#1e5c8a] transition-colors rounded px-2.5 py-1.5"
+                className="shrink-0 flex items-center gap-1.5 text-xs font-medium text-white bg-[#1a3a5c] hover:bg-[#1e5c8a] transition-colors rounded px-2.5 py-1.5 dark:bg-[#1e4976] dark:hover:bg-[#2563eb]"
               >
                 <svg viewBox="0 0 24 24" className="w-3.5 h-3.5 fill-current">
                   <path d="M19 9h-4V3H9v6H5l7 7 7-7zm-8 2V5h2v6h1.17L12 13.17 9.83 11H11zm-6 7h14v2H5v-2z"/>
@@ -96,7 +100,7 @@ export function Dashboard({ data, selectedSector, selectedFeatures, visibleCount
                 Mapa PDF
               </a>
             ) : (
-              <span className="shrink-0 text-[11px] text-slate-400 italic">
+              <span className="shrink-0 text-[11px] text-slate-400 dark:text-slate-500 italic">
                 Sem mapa disponível no IBGE
               </span>
             )
@@ -110,7 +114,7 @@ export function Dashboard({ data, selectedSector, selectedFeatures, visibleCount
 
         {/* Conteúdo condicional */}
         {displaySector && !data.hasData ? (
-          <div className="bg-white rounded-lg border border-slate-200 p-4">
+          <div className="bg-white dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-700 p-4">
             <NoDataMessage cdSetor={displaySector.properties.CD_SETOR} />
           </div>
         ) : (

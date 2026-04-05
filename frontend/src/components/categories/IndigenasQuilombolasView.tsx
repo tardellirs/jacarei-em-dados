@@ -34,9 +34,9 @@ function PopPanel({ title, data, faixaLabels }: PanelProps) {
   const faixaTotal = faixaData.reduce((s, d) => s + d.value, 0)
 
   return (
-    <div className="bg-slate-50 rounded-lg border border-slate-200 p-3 flex flex-col gap-3">
+    <div className="bg-slate-50 dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700 p-3 flex flex-col gap-3">
       {/* Card de total */}
-      <div className="rounded-lg px-4 py-3 text-white text-center bg-[#4B5563]">
+      <div className="rounded-lg px-4 py-3 text-white text-center bg-[#4B5563] dark:bg-[#374151]">
         <p className="text-xs opacity-80 font-medium mb-1">{title}</p>
         <p className="text-2xl font-bold">{data.total.toLocaleString('pt-BR')}</p>
       </div>
@@ -49,7 +49,7 @@ function PopPanel({ title, data, faixaLabels }: PanelProps) {
         <>
           {/* Distribuição por sexo */}
           <div>
-            <p className="text-xs font-semibold text-slate-600 text-center mb-1">
+            <p className="text-xs font-semibold text-slate-600 dark:text-slate-400 text-center mb-1">
               {title} por sexo
             </p>
             {sexoTotal > 0
@@ -60,7 +60,7 @@ function PopPanel({ title, data, faixaLabels }: PanelProps) {
 
           {/* Distribuição por grupo etário */}
           <div>
-            <p className="text-xs font-semibold text-slate-600 mb-2">
+            <p className="text-xs font-semibold text-slate-600 dark:text-slate-400 mb-2">
               {title} por grupo etário
             </p>
             {faixaTotal > 0
@@ -80,8 +80,8 @@ interface IndigenasQuilombolasViewProps {
 
 export function IndigenasQuilombolasView({ data }: IndigenasQuilombolasViewProps) {
   return (
-    <div className="bg-white rounded-lg border border-slate-200 p-4">
-      <h3 className="text-sm font-semibold text-slate-700 mb-3">
+    <div className="bg-white dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-700 p-4">
+      <h3 className="text-sm font-semibold text-slate-700 dark:text-slate-200 mb-3">
         Populações Indígenas e Quilombolas
       </h3>
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">

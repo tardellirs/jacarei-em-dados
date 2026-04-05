@@ -82,6 +82,24 @@ export const SALARIO_MINIMO_2026 = 1631
 // Correção IPCA acumulada agosto/2022 → fevereiro/2026
 export const IPCA_AGO2022_FEV2026 = 1.1665
 
+// ── Mercado Imobiliário (faixas de preço para análise Demanda × Oferta) ──
+export const INCOME_MULTIPLIER = 1.5
+export const MAX_PROPERTY_FACTOR = 42
+export const ABSORPTION_FACTOR = 4
+
+export const MARKET_BRACKETS = [
+  { label: 'Econômico',   min: 0,         max: 150_000  },
+  { label: 'Standard',    min: 150_000,   max: 250_000  },
+  { label: 'Médio-Baixo', min: 250_000,   max: 350_000  },
+  { label: 'Médio',       min: 350_000,   max: 500_000  },
+  { label: 'Médio-Alto',  min: 500_000,   max: 700_000  },
+  { label: 'Alto',        min: 700_000,   max: 1_000_000 },
+  { label: 'Alto A',      min: 1_000_000, max: 1_500_000 },
+  { label: 'Alto AA',     min: 1_500_000, max: 2_500_000 },
+  { label: 'Luxo',        min: 2_500_000, max: 5_000_000 },
+  { label: 'Super Luxo',  min: 5_000_000, max: Infinity  },
+] as const
+
 // Faixas em múltiplos do SM 2026 (aplicadas ao valor já corrigido)
 export const RENDA_FAIXAS = [
   { label: 'Até 1 SM',      maxVal: SALARIO_MINIMO_2026 },
@@ -118,8 +136,9 @@ export interface OverlayConfig {
   brackets: OverlayBracket[]
   colors: readonly string[]  // uma cor por faixa, mesmo índice
   noDataColor: string
-  /** Retorna a métrica numérica do setor, ou null se sem dados. */
-  getValue: (p: SectorProperties) => number | null
+  /** Retorna a métrica numérica do setor, ou null se sem dados.
+   *  extra: dados externos opcionais (ex: VivarealSectorData) */
+  getValue: (p: SectorProperties, extra?: Record<string, unknown>) => number | null
 }
 
 export const OVERLAY_CONFIGS: Record<OverlayType, OverlayConfig> = {
@@ -200,10 +219,77 @@ export const OVERLAY_CONFIGS: Record<OverlayType, OverlayConfig> = {
       return (nBranca / total) * 100
     },
   },
+  preco_m2: {
+    key: 'preco_m2',
+    title: 'Preço mediano por m² (R$)',
+    buttonLabel: 'Preço/m²',
+    brackets: [
+      { label: 'Até R$ 3.000',       maxVal: 3000     },
+      { label: 'R$ 3.000 – 5.000',   maxVal: 5000     },
+      { label: 'R$ 5.000 – 7.000',   maxVal: 7000     },
+      { label: 'R$ 7.000 – 10.000',  maxVal: 10000    },
+      { label: 'Acima de R$ 10.000', maxVal: Infinity },
+    ],
+    colors: ['#FEF3C7', '#FDE68A', '#F59E0B', '#D97706', '#92400E'],
+    noDataColor: '#D1D5DB',
+    getValue: (p, extra) => {
+      const cd = p.CD_SETOR
+      const entry = (extra as Record<string, { mpm2s?: number }> | undefined)?.[cd]
+      const v = entry?.mpm2s
+      return v != null && v > 0 ? v : null
+    },
+  },
+  yield_aluguel: {
+    key: 'yield_aluguel',
+    title: 'Yield de aluguel anual (%)',
+    buttonLabel: 'Yield',
+    brackets: [
+      { label: 'Abaixo de 4%', maxVal: 4        },
+      { label: '4% – 6%',      maxVal: 6        },
+      { label: '6% – 8%',      maxVal: 8        },
+      { label: '8% – 10%',     maxVal: 10       },
+      { label: 'Acima de 10%', maxVal: Infinity },
+    ],
+    colors: ['#F7FCF5', '#C7E9C0', '#74C476', '#238B45', '#00441B'],
+    noDataColor: '#D1D5DB',
+    getValue: (p, extra) => {
+      const cd = p.CD_SETOR
+      const entry = (extra as Record<string, { mpm2s?: number; mpm2r?: number }> | undefined)?.[cd]
+      if (!entry?.mpm2s || !entry?.mpm2r || entry.mpm2s === 0) return null
+      return (entry.mpm2r * 12) / entry.mpm2s * 100
+    },
+  },
+  acessibilidade: {
+    key: 'acessibilidade',
+    title: 'Acessibilidade habitacional (preço/capacidade)',
+    buttonLabel: 'Acesso',
+    brackets: [
+      { label: 'Muito acessível (< 0,5×)', maxVal: 0.5      },
+      { label: 'Acessível (0,5–0,8×)',      maxVal: 0.8      },
+      { label: 'Equilibrado (0,8–1,2×)',    maxVal: 1.2      },
+      { label: 'Caro (1,2–2,0×)',           maxVal: 2.0      },
+      { label: 'Inacessível (> 2,0×)',      maxVal: Infinity },
+    ],
+    // RdYlGn invertido: verde = acessível, vermelho = inacessível
+    colors: ['#1A9850', '#91CF60', '#FFFFBF', '#FC8D59', '#D73027'],
+    noDataColor: '#D1D5DB',
+    getValue: (p, extra) => {
+      const cd = p.CD_SETOR
+      const entry = (extra as Record<string, { msp?: number }> | undefined)?.[cd]
+      if (!entry?.msp || entry.msp === 0) return null
+      const v06004 = p.V06004
+      if (!v06004 || v06004 === 0) return null
+      const capacidade = v06004 * 1.1665 * 1.5 * 42
+      return entry.msp / capacidade
+    },
+  },
 }
 
 /** Ordem de exibição dos botões na toolbar */
-export const OVERLAY_ORDER: OverlayType[] = ['renda', 'densidade', 'alfabetizacao', 'cor_raca']
+export const OVERLAY_ORDER: OverlayType[] = [
+  'renda', 'densidade', 'alfabetizacao', 'cor_raca',
+  'preco_m2', 'yield_aluguel', 'acessibilidade',
+]
 
 export const COLOR_MALE = '#3B82F6'   // blue-500
 export const COLOR_FEMALE = '#EC4899' // pink-500

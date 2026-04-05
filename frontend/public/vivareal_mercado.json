@@ -1,0 +1,123 @@
+{
+  "metadata": {
+    "total_sale": 15329,
+    "total_rental": 2094,
+    "sale_with_setor": 15323,
+    "rental_with_setor": 2072,
+    "absorption_factor": 4,
+    "income_multiplier": 1.5,
+    "max_property_factor": 42,
+    "ipca_correction": 1.1665,
+    "generated_at": "2026-04-04T23:29:23.882368+00:00",
+    "residential_types": [
+      "APARTMENT",
+      "CONDOMINIUM",
+      "FLAT",
+      "HOME",
+      "PENTHOUSE",
+      "TWO_STORY_HOUSE"
+    ]
+  },
+  "brackets": [
+    {
+      "label": "Econômico",
+      "min": 0,
+      "max": 150000,
+      "max_label": "R$ 150.000",
+      "demand": 3546.0,
+      "supply": 23,
+      "gap": 3523.0
+    },
+    {
+      "label": "Standard",
+      "min": 150000,
+      "max": 250000,
+      "max_label": "R$ 250.000",
+      "demand": 11162.5,
+      "supply": 821,
+      "gap": 10341.5
+    },
+    {
+      "label": "Médio-Baixo",
+      "min": 250000,
+      "max": 350000,
+      "max_label": "R$ 350.000",
+      "demand": 3259.5,
+      "supply": 2331,
+      "gap": 928.5
+    },
+    {
+      "label": "Médio",
+      "min": 350000,
+      "max": 500000,
+      "max_label": "R$ 500.000",
+      "demand": 1810.0,
+      "supply": 3452,
+      "gap": -1642.0
+    },
+    {
+      "label": "Médio-Alto",
+      "min": 500000,
+      "max": 700000,
+      "max_label": "R$ 700.000",
+      "demand": 1007.2,
+      "supply": 2730,
+      "gap": -1722.8
+    },
+    {
+      "label": "Alto",
+      "min": 700000,
+      "max": 1000000,
+      "max_label": "R$ 1.000.000",
+      "demand": 479.5,
+      "supply": 2208,
+      "gap": -1728.5
+    },
+    {
+      "label": "Alto A",
+      "min": 1000000,
+      "max": 1500000,
+      "max_label": "R$ 1.500.000",
+      "demand": 0.0,
+      "supply": 1548,
+      "gap": -1548.0
+    },
+    {
+      "label": "Alto AA",
+      "min": 1500000,
+      "max": 2500000,
+      "max_label": "R$ 2.500.000",
+      "demand": 0.0,
+      "supply": 1602,
+      "gap": -1602.0
+    },
+    {
+      "label": "Luxo",
+      "min": 2500000,
+      "max": 5000000,
+      "max_label": "R$ 5.000.000",
+      "demand": 0.0,
+      "supply": 578,
+      "gap": -578.0
+    },
+    {
+      "label": "Super Luxo",
+      "min": 5000000,
+      "max": null,
+      "max_label": "Acima",
+      "demand": 0.0,
+      "supply": 36,
+      "gap": -36.0
+    }
+  ],
+  "summary": {
+    "total_sale": 15329,
+    "median_sale_price": 560000,
+    "total_demand": 21264.8,
+    "total_supply": 15329,
+    "total_rental": 2094,
+    "median_rental_price": 3250,
+    "median_rental_pm2": 33,
+    "median_sale_pm2": 5000
+  }
+}
