@@ -46,7 +46,7 @@ function renderCategory(category: DashboardCategory, data: DashboardData) {
 }
 
 export function Dashboard({ data, selectedSector, selectedFeatures, visibleCount, totalCount, vivarealMarketData: _vivarealMarketData }: DashboardProps) {
-  const [activeCategory, setActiveCategory] = useState<DashboardCategory>('demografia')
+  const [activeCategory, setActiveCategory] = useState<DashboardCategory>('mercado_imobiliario')
 
   const polyCount = selectedFeatures.length
 
