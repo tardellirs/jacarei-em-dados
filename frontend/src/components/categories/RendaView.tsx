@@ -33,7 +33,7 @@ export function RendaView({ data }: RendaViewProps) {
 
   return (
     <div className="bg-white dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-700 p-4">
-      <h3 className="text-base font-semibold text-slate-700 dark:text-slate-200 mb-4">Renda do Responsável</h3>
+      <h3 className="text-base font-semibold text-slate-700 dark:text-slate-200 mb-4">Renda Domiciliar</h3>
 
       {!temDados ? (
         <p className="text-sm text-slate-400 dark:text-slate-500 italic text-center py-6">Sem dados disponíveis</p>
@@ -121,7 +121,7 @@ export function RendaView({ data }: RendaViewProps) {
 
           <p className="text-[11px] text-slate-400 dark:text-slate-500 italic">
             Fonte: Censo Demográfico IBGE 2022 · V06004 – Rendimento nominal médio mensal do responsável.
-            Valores corrigidos pelo IPCA acumulado de agosto/2022 a fevereiro/2026 (+16,65%).
+            Corrigido pelo IPCA ago/2022→fev/2026 (+16,65%) e multiplicado por 1,5 (renda domiciliar estimada).
             Seleção múltipla: média ponderada pelo número de responsáveis.
             Valores "X" (sigilo estatístico) descartados do cálculo.
           </p>

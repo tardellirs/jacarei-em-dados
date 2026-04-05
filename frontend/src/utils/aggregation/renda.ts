@@ -1,6 +1,6 @@
 import type { SectorFeature, SectorProperties, RendaData, RendaFaixa } from '../../types'
 import { safeNum } from './helpers'
-import { IPCA_AGO2022_FEV2026, RENDA_FAIXAS } from '../constants'
+import { IPCA_AGO2022_FEV2026, INCOME_MULTIPLIER, RENDA_FAIXAS } from '../constants'
 
 function buildDistribuicao(entries: { rendaCorrigida: number; responsaveis: number }[]): RendaFaixa[] {
   const totals = RENDA_FAIXAS.map(f => ({ label: f.label, domicilios: 0 }))
@@ -23,14 +23,14 @@ export function aggregateRenda(features: SectorFeature[]): RendaData {
     if (responsaveis > 0 && rendaNominal > 0) {
       somaRendaXResponsaveis += rendaNominal * responsaveis
       totalResponsaveis += responsaveis
-      entries.push({ rendaCorrigida: rendaNominal * IPCA_AGO2022_FEV2026, responsaveis })
+      entries.push({ rendaCorrigida: rendaNominal * IPCA_AGO2022_FEV2026 * INCOME_MULTIPLIER, responsaveis })
     }
   }
 
   return {
     rendaMediaCorrigida:
       totalResponsaveis > 0
-        ? (somaRendaXResponsaveis / totalResponsaveis) * IPCA_AGO2022_FEV2026
+        ? (somaRendaXResponsaveis / totalResponsaveis) * IPCA_AGO2022_FEV2026 * INCOME_MULTIPLIER
         : 0,
     totalResponsaveis,
     sectorCount: entries.length,
@@ -41,7 +41,7 @@ export function aggregateRenda(features: SectorFeature[]): RendaData {
 export function sectorRenda(p: SectorProperties): RendaData {
   const rendaNominal = safeNum(p.V06004)
   const responsaveis = safeNum(p.V06001)
-  const rendaCorrigida = rendaNominal * IPCA_AGO2022_FEV2026
+  const rendaCorrigida = rendaNominal * IPCA_AGO2022_FEV2026 * INCOME_MULTIPLIER
   return {
     rendaMediaCorrigida: rendaCorrigida,
     totalResponsaveis: responsaveis,

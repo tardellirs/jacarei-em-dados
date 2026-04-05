@@ -144,13 +144,13 @@ export interface OverlayConfig {
 export const OVERLAY_CONFIGS: Record<OverlayType, OverlayConfig> = {
   renda: {
     key: 'renda',
-    title: 'Renda média (SM 2026)',
+    title: 'Renda domiciliar (SM 2026)',
     buttonLabel: 'Renda',
     brackets: RENDA_FAIXAS as unknown as OverlayBracket[],
     colors: RENDA_FAIXA_COLORS,
     noDataColor: RENDA_SEM_DADOS_COLOR,
     getValue: (p) =>
-      p.V06004 != null && p.V06004 > 0 ? p.V06004 * IPCA_AGO2022_FEV2026 : null,
+      p.V06004 != null && p.V06004 > 0 ? p.V06004 * IPCA_AGO2022_FEV2026 * INCOME_MULTIPLIER : null,
   },
   densidade: {
     key: 'densidade',
