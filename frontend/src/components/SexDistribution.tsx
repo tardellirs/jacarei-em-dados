@@ -1,13 +1,3 @@
-import {
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  ResponsiveContainer,
-  LabelList,
-  Legend,
-  Tooltip,
-} from 'recharts'
 import type { DashboardData } from '../types'
 import { COLOR_MALE, COLOR_FEMALE } from '../utils/constants'
 import { fmtInt } from '../utils/formatting'
@@ -19,7 +9,7 @@ interface SexDistributionProps {
 export function SexDistribution({ data }: SexDistributionProps) {
   if (!data.hasData) {
     return (
-      <div className="bg-white dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-700 p-4">
+      <div className="bg-white dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-700 p-3">
         <h3 className="text-sm font-semibold text-slate-700 dark:text-slate-200 mb-3">Distribuição por Sexo</h3>
         <p className="text-xs text-slate-400 dark:text-slate-500 text-center py-4">Sem dados para este setor</p>
       </div>
@@ -29,7 +19,7 @@ export function SexDistribution({ data }: SexDistributionProps) {
   const total = data.masculino + data.feminino
   if (total === 0) {
     return (
-      <div className="bg-white dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-700 p-4">
+      <div className="bg-white dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-700 p-3">
         <h3 className="text-sm font-semibold text-slate-700 dark:text-slate-200 mb-3">Distribuição por Sexo</h3>
         <p className="text-xs text-slate-400 dark:text-slate-500 text-center py-4">Sem população registrada</p>
       </div>
@@ -39,83 +29,67 @@ export function SexDistribution({ data }: SexDistributionProps) {
   const mPct = (data.masculino / total) * 100
   const fPct = (data.feminino / total) * 100
 
-  const chartData = [
-    {
-      name: ' ',
-      masculino: parseFloat(mPct.toFixed(1)),
-      feminino: parseFloat(fPct.toFixed(1)),
-      masculinoAbs: data.masculino,
-      femininoAbs: data.feminino,
-    },
-  ]
-
-  const renderCustomLabel = (props: {
-    x?: number; y?: number; width?: number; height?: number; value?: number
-  }, absValue: number) => {
-    const { x = 0, y = 0, width = 0, height = 0, value = 0 } = props
-    if (width < 40) return null
-    return (
-      <text
-        x={x + width / 2}
-        y={y + height / 2}
-        fill="white"
-        textAnchor="middle"
-        dominantBaseline="middle"
-        fontSize={11}
-        fontWeight={600}
-      >
-        {value.toFixed(1)}% ({fmtInt(absValue)})
-      </text>
-    )
-  }
-
   return (
-    <div className="bg-white dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-700 p-4">
+    <div className="bg-white dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-700 p-3">
       <h3 className="text-sm font-semibold text-slate-700 dark:text-slate-200 mb-3">Distribuição por Sexo</h3>
-      <ResponsiveContainer width="100%" height={60}>
-        <BarChart
-          data={chartData}
-          layout="vertical"
-          barSize={32}
-          margin={{ top: 0, right: 8, left: 8, bottom: 0 }}
-        >
-          <XAxis type="number" domain={[0, 100]} hide />
-          <YAxis type="category" dataKey="name" hide />
-          <Tooltip
-            contentStyle={{
-              backgroundColor: 'var(--chart-tooltip-bg)',
-              border: '1px solid var(--chart-tooltip-border)',
-              color: 'var(--chart-tooltip-text)',
-              fontSize: 12,
-              borderRadius: 6,
-            }}
-            formatter={(value: number, name: string) => {
-              const abs = name === 'masculino' ? data.masculino : data.feminino
-              return [`${value.toFixed(1)}% (${fmtInt(abs)})`, name === 'masculino' ? 'Masculino' : 'Feminino']
-            }}
-          />
-          <Bar dataKey="masculino" stackId="a" fill={COLOR_MALE} isAnimationActive={false}>
-            <LabelList
-              dataKey="masculino"
-              content={(props) => renderCustomLabel(props as Parameters<typeof renderCustomLabel>[0], data.masculino)}
-            />
-          </Bar>
-          <Bar dataKey="feminino" stackId="a" fill={COLOR_FEMALE} isAnimationActive={false}>
-            <LabelList
-              dataKey="feminino"
-              content={(props) => renderCustomLabel(props as Parameters<typeof renderCustomLabel>[0], data.feminino)}
-            />
-          </Bar>
-        </BarChart>
-      </ResponsiveContainer>
-      <div className="flex gap-4 justify-center mt-2">
-        <div className="flex items-center gap-1.5">
-          <div className="w-3 h-3 rounded-sm" style={{ backgroundColor: COLOR_MALE }} />
-          <span className="text-xs text-slate-600 dark:text-slate-400">Masculino</span>
+
+      {/* Cards de resumo */}
+      <div className="grid grid-cols-3 gap-2 mb-3">
+        {/* Total */}
+        <div className="flex flex-col p-2 rounded-lg bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-700">
+          <p className="text-[10px] text-slate-500 dark:text-slate-400 uppercase tracking-wide font-medium mb-0.5">Total</p>
+          <p className="text-base font-bold text-slate-800 dark:text-slate-100">{fmtInt(total)}</p>
+          <p className="text-[10px] text-slate-400 dark:text-slate-500">habitantes</p>
         </div>
-        <div className="flex items-center gap-1.5">
-          <div className="w-3 h-3 rounded-sm" style={{ backgroundColor: COLOR_FEMALE }} />
-          <span className="text-xs text-slate-600 dark:text-slate-400">Feminino</span>
+
+        {/* Masculino */}
+        <div
+          className="flex flex-col p-2 rounded-lg border"
+          style={{
+            backgroundColor: `${COLOR_MALE}12`,
+            borderColor: `${COLOR_MALE}40`,
+          }}
+        >
+          <p className="text-[10px] uppercase tracking-wide font-medium mb-0.5" style={{ color: COLOR_MALE }}>Masculino</p>
+          <p className="text-base font-bold" style={{ color: COLOR_MALE }}>{fmtInt(data.masculino)}</p>
+          <p className="text-[10px] text-slate-400 dark:text-slate-500">{mPct.toFixed(1)}%</p>
+        </div>
+
+        {/* Feminino */}
+        <div
+          className="flex flex-col p-2 rounded-lg border"
+          style={{
+            backgroundColor: `${COLOR_FEMALE}12`,
+            borderColor: `${COLOR_FEMALE}40`,
+          }}
+        >
+          <p className="text-[10px] uppercase tracking-wide font-medium mb-0.5" style={{ color: COLOR_FEMALE }}>Feminino</p>
+          <p className="text-base font-bold" style={{ color: COLOR_FEMALE }}>{fmtInt(data.feminino)}</p>
+          <p className="text-[10px] text-slate-400 dark:text-slate-500">{fPct.toFixed(1)}%</p>
+        </div>
+      </div>
+
+      {/* Barra pill */}
+      <div className="h-8 rounded-full overflow-hidden flex">
+        <div
+          className="flex items-center justify-center transition-all"
+          style={{ width: `${mPct}%`, backgroundColor: COLOR_MALE }}
+        >
+          {mPct >= 18 && (
+            <span className="text-white text-[11px] font-semibold select-none">
+              {mPct.toFixed(1)}%
+            </span>
+          )}
+        </div>
+        <div
+          className="flex items-center justify-center transition-all"
+          style={{ width: `${fPct}%`, backgroundColor: COLOR_FEMALE }}
+        >
+          {fPct >= 18 && (
+            <span className="text-white text-[11px] font-semibold select-none">
+              {fPct.toFixed(1)}%
+            </span>
+          )}
         </div>
       </div>
     </div>
